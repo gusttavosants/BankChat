@@ -18,3 +18,4 @@ class BancoAgilState(TypedDict):
     encerrado: bool
     ultimo_erro: Optional[str]
     solicitacao_em_aberto: Optional[dict]
+    analise_realizada: bool
