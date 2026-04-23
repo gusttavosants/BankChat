@@ -1,26 +1,24 @@
 import logging
-import sys
 import os
+from datetime import datetime
 
-def setup_logger(name="banco_agil"):
-    """Configura logger centralizado"""
-    logger = logging.getLogger(name)
-    if not logger.handlers:
-        logger.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        
-        # Log to console
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
-        
-        # Log to file
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-        os.makedirs(log_dir, exist_ok=True)
-        file_handler = logging.FileHandler(os.path.join(log_dir, 'app.log'))
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-        
-    return logger
+# Configuração básica de logs
+log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
-logger = setup_logger()
+log_file = os.path.join(log_dir, 'errors.log')
+
+logging.basicConfig(
+    filename=log_file,
+    level=logging.ERROR,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger('BancoAgil')
+
+def log_erro(contexto: str, erro: Exception):
+    """Registra um erro no arquivo de log com o contexto fornecido."""
+    msg = f"[{contexto}] {type(erro).__name__}: {str(erro)}"
+    logger.error(msg)
+    print(f"DEBUG LOG: {msg}") # Para visualização no terminal do VS Code
