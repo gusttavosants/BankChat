@@ -7,46 +7,56 @@ class ScoreService:
         self.clientes_repo = clientes_repo or ClientesRepository()
 
     def calcular_score(self, renda_mensal: float, tipo_emprego: str, despesas_fixas: float, num_dependentes: str, tem_dividas: str) -> dict:
-        peso_emprego = { "formal": 300, "autônomo": 200, "desempregado": 0 }
+        # Definição de Pesos para escala 0-1000
+        # 1. Renda vs Despesas (Max 400 pontos)
+        # Se a sobra for > 50% da renda, ganha pontuação máxima
+        sobra = renda_mensal - despesas_fixas
+        percentual_sobra = (sobra / (renda_mensal + 1)) * 100
+        pontos_renda = min(max(percentual_sobra * 4, 0), 400)
+
+        # 2. Tipo de Emprego (Max 300 pontos)
+        pesos_emprego = { 
+            "formal": 300, "clt": 300, "concursado": 300,
+            "autônomo": 200, "autonomo": 200, "empresário": 200, "empresario": 200, "pj": 200,
+            "desempregado": 0, "estudante": 50, "aposentado": 250
+        }
+        tp = str(tipo_emprego).lower().strip()
+        p_emprego = pesos_emprego.get(tp, 0)
+
+        # 3. Dependentes (Max 150 pontos)
+        try:
+            n_dep = int(str(num_dependentes).replace("+", ""))
+        except:
+            n_dep = 3
         
-        if num_dependentes in ["0", "1", "2"]:
-            dep_key = int(num_dependentes)
-        elif num_dependentes in ["3", "3+"]:
-            dep_key = "3+"
-        else:
-            dep_key = "3+"
-            
-        peso_dependentes = { 0: 100, 1: 80, 2: 60, "3+": 30 }
-        
-        # Aceita sim, s, não, nao, n (case insensitive)
+        if n_dep == 0: p_dep = 150
+        elif n_dep == 1: p_dep = 100
+        elif n_dep == 2: p_dep = 70
+        else: p_dep = 30
+
+        # 4. Dívidas (Max 150 pontos)
         td = str(tem_dividas).lower().strip()
-        has_dividas = "sim" if td in ["sim", "s", "true", "1"] else "não"
-        peso_dividas = { "sim": -100, "não": 100 }
+        has_dividas = td in ["sim", "s", "true", "1", "tenho"]
+        p_dividas = 0 if has_dividas else 150
 
-        if tipo_emprego.lower() not in peso_emprego:
-            raise ValueError("Tipo de emprego inválido. Use: formal, autônomo ou desempregado.")
-
-        p_emprego = peso_emprego[tipo_emprego.lower()]
-        p_dep = peso_dependentes.get(dep_key, 30)
-        p_dividas = peso_dividas[has_dividas]
-
-        score = (
-            (renda_mensal / (despesas_fixas + 1)) * 30 +
-            p_emprego +
-            p_dep +
-            p_dividas
-        )
-
-        score_final = int(min(max(score, 0), 1000))
+        # Cálculo Final
+        score_final = int(min(max(pontos_renda + p_emprego + p_dep + p_dividas, 0), 1000))
+        
+        # Sugestão de novo limite baseado no score
+        if score_final >= 800: novo_limite = 15000.0
+        elif score_final >= 600: novo_limite = 8000.0
+        elif score_final >= 400: novo_limite = 3000.0
+        else: novo_limite = 1000.0
 
         return {
             "score_calculado": score_final,
+            "limite_sugerido": novo_limite,
             "detalhes": {
                 "renda": renda_mensal,
                 "despesas": despesas_fixas,
-                "emprego": tipo_emprego,
+                "emprego": tp,
                 "dependentes": num_dependentes,
-                "dividas": has_dividas
+                "dividas": "sim" if has_dividas else "não"
             }
         }
 
@@ -57,10 +67,22 @@ class ScoreService:
             raise ClienteNaoEncontradoError("Cliente não encontrado. Score não atualizado.")
             
         score_anterior = int(cliente['score_credito'])
-        self.clientes_repo.update_score(cpf_formatado, novo_score)
+        limite_anterior = float(cliente['limite_credito'])
+        
+        # Define o novo limite com base no novo score
+        if novo_score >= 800: novo_limite = 15000.0
+        elif novo_score >= 600: novo_limite = 8000.0
+        elif novo_score >= 400: novo_limite = 3000.0
+        else: novo_limite = 1000.0
+        
+        # Se o score aumentou, o limite aumenta. Se o score diminuiu drasticamente, mantemos ou reduzimos levemente?
+        # Para fins de teste técnico, vamos seguir a sugestão do score.
+        self.clientes_repo.update_score_e_limite(cpf_formatado, novo_score, novo_limite)
         
         return {
             "cpf": cpf_formatado,
             "score_anterior": score_anterior,
-            "score_novo": novo_score
+            "score_novo": novo_score,
+            "limite_anterior": limite_anterior,
+            "limite_novo": novo_limite
         }

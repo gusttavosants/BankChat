@@ -30,12 +30,17 @@ class CreditoService:
         if not cliente:
             raise ClienteNaoEncontradoError("Cliente não encontrado.")
 
+        # Verifica o score antes de salvar para definir o status final
+        score_atual = int(cliente['score_credito'])
+        limite_maximo = self.score_repo.get_limite_maximo(score_atual)
+        status = "aprovado" if float(novo_limite) <= limite_maximo else "rejeitado"
+
         solicitacao = {
             'cpf_cliente': cpf_formatado,
             'data_hora_solicitacao': datetime.now().isoformat(),
             'limite_atual': float(cliente['limite_credito']),
             'novo_limite_solicitado': float(novo_limite),
-            'status_pedido': 'pendente'
+            'status_pedido': status
         }
         
         sucesso = self.solicitacoes_repo.save(solicitacao)
