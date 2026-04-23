@@ -8,7 +8,6 @@ Sistema de atendimento bancário digital construído com múltiplos agentes de I
 
 O Banco Ágil utiliza uma arquitetura de **Micro-Agentes Orquestrados** via Grafos de Estado (State Graphs). A lógica é separada por "nós" (nodes), onde cada nó representa um especialista.
 
-![Diagrama de Arquitetura do Sistema](docs/arquitetura.png)
 <img width="1271" height="388" alt="image" src="https://github.com/user-attachments/assets/4deb58e7-9fce-40d0-be78-9bc505c40eeb" />
 https://drive.google.com/file/d/10r3nPogTvCEYKHrvI9Qr_k2RWA2NFJbu/view?usp=drive_link
 *(A imagem acima ilustra o fluxo de estados e a interação entre os agentes)*
