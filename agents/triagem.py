@@ -25,14 +25,23 @@ tools = [autenticar_cliente, verificar_cpf, encerrar_atendimento]
 agent = create_react_agent(LLM, tools=tools, prompt=system_prompt)
 
 def agente_triagem_node(state: BancoAgilState):
+    tentativas = state.get("tentativas_auth", 0)
+    auth_sucesso = state.get("cliente_autenticado", False)
+    
+    # Bloqueio imediato se o limite já foi atingido em turnos anteriores
+    if tentativas >= 3 and not auth_sucesso:
+        return {
+            "messages": [AIMessage(content="Limite de 3 tentativas excedido. O atendimento foi encerrado.", name="triagem")],
+            "encerrado": True
+        }
+
     messages = state["messages"]
     transferencia = state.get("agente_atual") != "triagem"
-    tentativas = state.get("tentativas_auth", 0)
     
-    # Injeta contexto de tentativas e CPF (apenas instrução, o texto final é do LLM)
+    # Injeta contexto de segurança para o LLM
     ctx_auth = ""
     if tentativas > 0:
-        ctx_auth = f"INSTRUÇÃO DE SEGURANÇA: O cliente já falhou {tentativas} vezes. Informe que ele tem mais {3 - tentativas} tentativas restantes."
+        ctx_auth = f"SEGURANÇA: O cliente já falhou {tentativas} vezes. Ele tem apenas {3 - tentativas} tentativa(s) RESTANTE(S) do total de 3."
     
     cpf_validado = state.get("cpf_cliente")
     if cpf_validado:
