@@ -26,3 +26,11 @@ def consultar_cotacao(moeda: str) -> dict:
             "message": str(e),
             "data": None
         }
+    except Exception as e:
+        from utils.logger import log_erro
+        log_erro("tools.consultar_cotacao", e)
+        return {
+            "status_code": 500,
+            "message": "Erro interno ao consultar cotação. Tente novamente mais tarde.",
+            "data": None
+        }

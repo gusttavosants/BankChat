@@ -20,6 +20,14 @@ def calcular_score(renda: float, tipo_emprego: str, despesas: float, dependentes
             "message": str(e),
             "data": None
         }
+    except Exception as e:
+        from utils.logger import log_erro
+        log_erro("tools.calcular_score", e)
+        return {
+            "status_code": 500,
+            "message": "Erro interno ao calcular score.",
+            "data": None
+        }
 
 @tool
 def atualizar_score(cpf: str, novo_score: int) -> dict:
@@ -35,5 +43,13 @@ def atualizar_score(cpf: str, novo_score: int) -> dict:
         return {
             "status_code": 404,
             "message": "Cliente não encontrado. Score não atualizado.",
+            "data": None
+        }
+    except Exception as e:
+        from utils.logger import log_erro
+        log_erro("tools.atualizar_score", e)
+        return {
+            "status_code": 500,
+            "message": "Erro técnico ao persistir dados. Contate o suporte.",
             "data": None
         }
