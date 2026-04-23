@@ -9,9 +9,10 @@ system_prompt = (
     "Você atua como o assistente virtual do Banco Ágil. Seu papel é receber os clientes com cordialidade e realizar a autenticação de segurança antes de qualquer serviço.\n\n"
     "Orientações de atendimento:\n"
     "- Comece sempre com uma saudação calorosa e boas-vindas ao Banco Ágil. Explique que, por segurança, você precisa confirmar alguns dados antes de prosseguir.\n"
-    "- O processo de autenticação deve ser feito em duas etapas rigorosas: primeiro, peça o CPF e use a ferramenta 'verificar_cpf'. Somente se o CPF for validado, peça a data de nascimento e use 'autenticar_cliente'.\n"
-    "- Se o CPF ou a data estiverem incorretos, informe o erro de forma educada e mencione quantas tentativas o cliente ainda possui (o limite total é de 3 falhas antes do encerramento automático).\n"
-    "- Após a autenticação bem-sucedida, cumprimente o cliente pelo nome e ofereça o menu principal: 1. Câmbio ou 2. Crédito.\n"
+    "- O processo de segurança é rigoroso e possui apenas 3 tentativas NO TOTAL (contando erros de CPF e Data). Após a 3ª falha, o atendimento será encerrado automaticamente.\n"
+    "- Siga sempre estas duas etapas: 1. Peça o CPF e valide com 'verificar_cpf'. Somente após o sucesso, 2. Peça a data de nascimento e valide com 'autenticar_cliente'.\n"
+    "- Se houver erro em qualquer etapa, informe o cliente e diga quantas tentativas ele ainda possui do total de 3.\n"
+    "- Após a autenticação, cumprimente-o pelo nome e ofereça: 1. Câmbio ou 2. Crédito.\n"
     "- Caso o cliente selecione uma opção, apenas confirme a transição (ex: 'Perfeito, vou verificar as informações de Crédito...') e deixe que o especialista assuma.\n\n"
     "Diretrizes técnicas:\n"
     "- Nunca tente realizar consultas de limites ou cotações neste estágio de triagem.\n"
@@ -77,45 +78,41 @@ def agente_triagem_node(state: BancoAgilState):
             if tool_name == 'encerrar_atendimento' or '"encerrado": true' in m.content.lower():
                 encerrado = True
             
-            # Detecta sucesso/falha no CPF
-            if tool_name == 'verificar_cpf':
+            # Detecta falhas em ferramentas de autenticação
+            if tool_name in ['verificar_cpf', 'autenticar_cliente']:
                 import json
                 try:
                     res_data = json.loads(m.content)
                     if res_data.get("status_code") == 200:
-                        # Extrai o CPF da chamada da ferramenta (reversed logic)
-                        for prev_msg in reversed(all_res_messages):
-                            if hasattr(prev_msg, "tool_calls"):
-                                for tc in prev_msg.tool_calls:
-                                    if tc["id"] == m.tool_call_id:
-                                        cpf_cliente = tc["args"].get("cpf")
-                                        break
-                            if cpf_cliente: break
+                        if tool_name == 'verificar_cpf':
+                            # Extrai o CPF para o estado
+                            for prev_msg in reversed(all_res_messages):
+                                if hasattr(prev_msg, "tool_calls"):
+                                    for tc in prev_msg.tool_calls:
+                                        if tc["id"] == m.tool_call_id:
+                                            cpf_cliente = tc["args"].get("cpf")
+                                            break
+                                if cpf_cliente: break
+                        else: # autenticar_cliente
+                            data = res_data.get("data")
+                            if data:
+                                auth_sucesso = True
+                                dados_cliente = data
+                                cpf_cliente = data.get("cpf")
+                                tentativas = 0
                     else:
                         tentativas += 1
-                        cpf_cliente = None # Limpa se falhou
-                except: pass
-
-            # Detecta sucesso/falha na autenticação completa
-            if tool_name == 'autenticar_cliente':
-                import json
-                try:
-                    res_data = json.loads(m.content)
-                    if res_data.get("status_code") == 200:
-                        data = res_data.get("data")
-                        if data:
-                            auth_sucesso = True
-                            dados_cliente = data
-                            cpf_cliente = data.get("cpf")
-                            tentativas = 0 
-                    else:
-                        tentativas += 1
-                except: pass
+                except:
+                    tentativas += 1 # Conta erro de parsing como tentativa falha por segurança
 
     if tentativas >= 3 and not auth_sucesso:
         encerrado = True
-        if not any("encerrar" in msg.content.lower() for msg in new_messages if isinstance(msg, AIMessage)):
-            new_messages.append(AIMessage(content="Limite de tentativas excedido. Por segurança, este atendimento será encerrado.", name="triagem"))
+        # Limpa as mensagens do agente para evitar que ele peça os dados de novo no 3º erro
+        new_messages = [m for m in new_messages if not isinstance(m, AIMessage)]
+        new_messages.append(AIMessage(
+            content="Limite de 3 tentativas excedido. Por segurança, este atendimento será encerrado agora. Por favor, tente novamente mais tarde.", 
+            name="triagem"
+        ))
 
     # Persiste o CPF no estado se ele foi validado nesta rodada ou já existia
     cpf_final = cpf_cliente or state.get("cpf_cliente")
