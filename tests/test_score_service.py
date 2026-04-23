@@ -4,9 +4,9 @@ from services.score_service import ScoreService
 class DummyClientesRepo:
     def get_by_cpf(self, cpf):
         if cpf == "123.456.789-00":
-            return {"score_credito": 500}
+            return {"score_credito": 500, "limite_credito": 3000.0}
         return None
-    def update_score(self, cpf, score):
+    def update_score_e_limite(self, cpf, score, limite):
         pass
 
 def test_calcular_score_logica():

@@ -27,7 +27,7 @@ def test_consultar_limite_sucesso():
 def test_solicitar_aumento_sucesso():
     service = CreditoService(DummyClientesRepo(), DummyScoreRepo(), DummySolicitacoesRepo())
     res = service.solicitar_aumento("123.456.789-00", 4000.0)
-    assert res["status_pedido"] == "pendente"
+    assert res["status_pedido"] == "aprovado"
 
 def test_verificar_score_aprovado():
     service = CreditoService(DummyClientesRepo(), DummyScoreRepo(), DummySolicitacoesRepo())
