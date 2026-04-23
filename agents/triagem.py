@@ -136,6 +136,9 @@ def agente_triagem_node(state: BancoAgilState):
             isinstance(m, HumanMessage) and m.content == "[TRANSFERÊNCIA RECEBIDA]"
         )]
             
+    if tentativas >= 3 and not auth_sucesso:
+        encerrado = True
+
     return {
         "messages": new_messages, 
         "agente_atual": "triagem", 

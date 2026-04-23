@@ -23,9 +23,9 @@ def router(state: BancoAgilState):
     print(f"Agente Atual: {agente_atual}")
     print(f"Última Mensagem: {last_message[:50]}...")
     
-    # Se a ferramenta encerrar_atendimento foi chamada ou o usuário quer sair
-    if any(k in last_message for k in ["encerrar", "encerrado", "sair", "tchau"]):
-        print("Decisão: END")
+    # Se o estado já sinaliza encerramento (pela flag ou por palavras-chave na mensagem)
+    if state.get("encerrado") or any(k in last_message for k in ["encerrar", "encerrado", "sair", "tchau"]):
+        print("Decisão: END (Sinalizado para encerrar)")
         return END
 
     # Se a última mensagem é do assistente, verificamos se ele está transferindo
