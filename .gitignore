@@ -18,3 +18,6 @@ logs/*.log
 
 # Streamlit
 .streamlit/
+
+# Agent config
+.agent/
