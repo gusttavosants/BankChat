@@ -1,25 +1,68 @@
 # 🏦 Banco Ágil - Agente Bancário Inteligente
 
-Sistema de atendimento bancário digital construído com múltiplos agentes de Inteligência Artificial usando LangGraph e Streamlit. Este sistema simula o atendimento completo de um banco digital, orquestrando tarefas como autenticação, consulta de limite, análise de crédito (entrevista financeira) e consulta de cotações em tempo real.
+Sistema de atendimento bancário digital construído com múltiplos agentes de Inteligência Artificial usando **LangGraph** e **Streamlit**. Este sistema simula o atendimento completo de um banco digital, orquestrando tarefas como autenticação, consulta de limite, análise de crédito (entrevista financeira) e consulta de cotações em tempo real.
 
-## 🌟 Visão Geral e Arquitetura
+---
 
-O Banco Ágil funciona como uma malha de agentes especializados (Multi-Agent System). A experiência para o usuário é única e fluida, sem que ele perceba que está trafegando entre diferentes cérebros (nós) do sistema.
+## 🏗️ Arquitetura do Sistema
 
-### Agentes:
-1. **Agente de Triagem**: Porta de entrada do sistema. Coleta CPF e Data de Nascimento, autentica o usuário (máximo 3 tentativas) e realiza o roteamento baseado na intenção.
-2. **Agente de Crédito**: Especialista em conta. Verifica o limite atual e processa pedidos de aumento. Caso o score do cliente não seja compatível, redireciona para a Entrevista.
-3. **Agente de Entrevista (Score)**: Faz uma análise profunda e conversacional. Coleta renda mensal, tipo de emprego, despesas, número de dependentes e dívidas, aplicando a fórmula do Banco Ágil para atualizar o score do cliente.
-4. **Agente de Câmbio**: Informa a cotação de moedas estrangeiras (USD, EUR, GBP, BTC) em tempo real buscando da AwesomeAPI.
+O Banco Ágil utiliza uma arquitetura de **Micro-Agentes Orquestrados** via Grafos de Estado (State Graphs). A lógica é separada por "nós" (nodes), onde cada nó representa um especialista.
 
-## 🛠️ Escolhas Técnicas
+![Diagrama de Arquitetura do Sistema](docs/arquitetura.png)
+*(A imagem acima ilustra o fluxo de estados e a interação entre os agentes)*
 
-- **LangGraph**: Orquestração do fluxo de controle (Grafos) e estado compartilhado entre os agentes de forma previsível e auditável.
-- **LangChain**: Integração de Tools padrão da indústria, facilitando o acoplamento do LLM com funções Python (Services).
-- **Streamlit**: Criação rápida de interfaces conversacionais interativas sem necessidade de escrever Javascript.
-- **Pandas**: Utilizado como Repository (Banco de Dados em memória/disco via CSV) para facilitar as avaliações locais.
-- **AwesomeAPI**: Endpoint gratuito para conversão de moedas sem necessidade de chaves de API extras.
-- **Provider LLM Agóstico**: Suporte nativo para Gemini, Groq e OpenRouter.
+### Componentes Principais:
+- **Estado Global (`state.py`)**: Um dicionário tipado que mantém o contexto da conversa, dados do cliente autenticado e flags de controle (ex: `analise_realizada`).
+- **Grafo de Orquestração (`graph.py`)**: Define as transições entre agentes. Utiliza um **Router** inteligente que interpreta mensagens de sistema e intenções do usuário para decidir o próximo passo.
+- **Camada de Serviços (`services/`)**: Contém a lógica de negócio pura (cálculo de score, integração com APIs, regras de crédito).
+- **Camada de Dados (`repositories/`)**: Abstração para persistência de dados em arquivos CSV, garantindo que as informações do cliente persistam entre sessões.
+
+### Fluxo de Dados:
+1. O usuário interage via UI (Streamlit).
+2. A mensagem é enviada para o Grafo.
+3. O Agente Atual processa a mensagem usando Ferramentas (`tools/`).
+4. O resultado pode disparar uma transição (handoff) para outro agente.
+5. O estado é atualizado e a resposta retorna para a interface.
+
+---
+
+## 🤖 Agentes Especializados
+
+1. **Agente de Triagem**: Responsável pelas boas-vindas e pela **Autenticação Segura**. Valida CPF e Data de Nascimento antes de liberar acesso aos serviços.
+2. **Agente de Crédito**: Consulta limites e processa pedidos de aumento. Possui lógica para detectar quando uma análise financeira mais profunda é necessária.
+3. **Agente de Entrevista (Score)**: Conduz uma conversa estruturada para coletar dados financeiros (renda, despesas, dependentes) e recalcular o score do cliente dinamicamente.
+4. **Agente de Câmbio**: Integrado à **AwesomeAPI**, fornece cotações em tempo real de USD, EUR, GBP e BTC.
+
+---
+
+## ✨ Funcionalidades Implementadas
+
+- [x] **Autenticação em 2 Etapas**: Validação de CPF e nascimento com limite de 3 tentativas.
+- [x] **Consulta de Limite**: Visualização imediata do limite de crédito atual.
+- [x] **Aumento de Limite Inteligente**: Aprovação automática baseada em score ou encaminhamento para entrevista.
+- [x] **Entrevista de Crédito Conversacional**: Coleta de dados financeiros de forma natural.
+- [x] **Cálculo de Score Dinâmico**: Algoritmo que pondera renda, estabilidade no emprego e compromissos financeiros.
+- [x] **Câmbio em Tempo Real**: Integração externa para cotações atualizadas.
+- [x] **Tratamento de Erros**: Sistema de logs e mensagens de erro amigáveis para instabilidades técnicas.
+
+---
+
+## 🛠️ Escolhas Técnicas e Justificativas
+
+- **LangGraph**: Escolhido pela capacidade de criar fluxos cíclicos e manter o estado da conversa de forma robusta, essencial para handoffs entre agentes.
+- **LangChain Tools**: Facilita a expansão do sistema; adicionar uma nova funcionalidade bancária é tão simples quanto criar uma nova função decorada com `@tool`.
+- **Pandas/CSV**: Utilizado para persistência local rápida e fácil auditoria dos dados de teste sem necessidade de configurar um banco de dados complexo (como PostgreSQL) para este desafio.
+- **Logging Centralizado**: Implementado para garantir que erros técnicos sejam registrados para análise sem interromper a interação do cliente.
+
+---
+
+## 🧠 Desafios Enfrentados e Soluções
+
+- **Loops Infinitos de Agentes**: Durante o desenvolvimento, os agentes às vezes entravam em loop pedindo a mesma informação. **Solução**: Implementação de flags de estado (ex: `analise_realizada`) que bloqueiam reentradas em fluxos já concluídos.
+- **Alucinações em Transições**: O LLM ocasionalmente "esquecia" de apresentar o menu após uma transferência. **Solução**: Refinamento dos prompts de sistema com instruções de "Primeira Tarefa" e uso de gatilhos naturais nas transições.
+- **Consistência de Dados**: Garantir que o score calculado na entrevista fosse refletido no limite de crédito. **Solução**: Centralização da lógica de atualização no `ScoreService`, que agora atualiza score e limite de forma atômica no repositório.
+
+---
 
 ## 🚀 Tutorial de Execução
 
@@ -28,49 +71,36 @@ O Banco Ágil funciona como uma malha de agentes especializados (Multi-Agent Sys
 
 ### Instalação
 1. Clone o repositório.
-2. Crie um ambiente virtual:
+2. Crie e ative seu ambiente virtual:
    ```bash
    python -m venv venv
-   # No Windows:
+   # Windows:
    venv\Scripts\activate
-   # No Linux/Mac:
-   source venv/bin/activate
    ```
 3. Instale as dependências:
    ```bash
    pip install -r requirements.txt
    ```
 
-### Configuração de Ambiente
-Crie um arquivo `.env` na raiz do projeto (ou copie o `.env.example`) e configure suas chaves:
-
+### Configuração
+Crie um arquivo `.env` na raiz do projeto:
 ```ini
-# API Keys (exemplo)
-OPENROUTER_API_KEY=sk-or-v1-...
-GOOGLE_API_KEY=AIzaSy...
-
-# Provider e Modelo
+OPENROUTER_API_KEY=sua_chave_aqui
 LLM_PROVIDER=openrouter
 MODEL_NAME=openrouter/free
 ```
-*(Nota: O provedor OpenRouter e o modelo `openrouter/free` garantem um roteamento gratuito de IA sem limites de uso).*
 
-### Rodando o Projeto
-Inicie a interface com o comando:
+### Execução
+Inicie o sistema com:
 ```bash
 streamlit run app.py
 ```
-Acesse `http://localhost:8501` em seu navegador.
 
-### Testando
-Os CPFs de testes disponíveis no banco de dados (`data/clientes.csv`) são:
-- `123.456.789-00` (Nasc: 15/03/1990)
-- `098.765.432-11` (Nasc: 20/07/1985)
-- `111.222.333-44` (Nasc: 10/10/2000)
-
-## 🧪 Testes Automatizados
-
-O sistema conta com testes automatizados utilizando `pytest` focados na camada de serviços (Regras de Negócio). Para executá-los, rode:
+### Testes
+Para rodar a suíte de testes automatizados:
 ```bash
 pytest tests/
 ```
+
+---
+*Desenvolvido como parte do desafio técnico para Agente Bancário Inteligente.*
