@@ -15,9 +15,7 @@ class ClientesRepository:
                 return None
             df = pd.read_csv(self.file_path, dtype={'cpf': str, 'data_nascimento': str})
             cliente_row = df[df['cpf'] == cpf]
-            if cliente_row.empty:
-                return None
-            return cliente_row.iloc[0].to_dict()
+            return cliente_row.iloc[0].to_dict() if not cliente_row.empty else None
         except Exception as e:
             log_erro("ClientesRepository.get_by_cpf", e)
             return None
@@ -29,8 +27,7 @@ class ClientesRepository:
             df = pd.read_csv(self.file_path, dtype={'cpf': str, 'data_nascimento': str})
             if cpf not in df['cpf'].values:
                 return False
-            df.loc[df['cpf'] == cpf, 'score_credito'] = novo_score
-            df.loc[df['cpf'] == cpf, 'limite_credito'] = novo_limite
+            df.loc[df['cpf'] == cpf, ['score_credito', 'limite_credito']] = [novo_score, novo_limite]
             df.to_csv(self.file_path, index=False)
             return True
         except Exception as e:

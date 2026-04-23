@@ -1,24 +1,20 @@
 import logging
 import os
-from datetime import datetime
 
-# Configuração básica de logs
-log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
 
-log_file = os.path.join(log_dir, 'errors.log')
+LOG_FILE = os.path.join(LOG_DIR, 'errors.log')
 
 logging.basicConfig(
-    filename=log_file,
+    filename=LOG_FILE,
     level=logging.ERROR,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
 logger = logging.getLogger('BancoAgil')
 
-def log_erro(contexto: str, erro: Exception):
-    """Registra um erro no arquivo de log com o contexto fornecido."""
-    msg = f"[{contexto}] {type(erro).__name__}: {str(erro)}"
+def log_erro(ctx: str, err: Exception):
+    msg = f"[{ctx}] {type(err).__name__}: {str(err)}"
     logger.error(msg)
-    print(f"DEBUG LOG: {msg}") # Para visualização no terminal do VS Code
