@@ -7,3 +7,6 @@ langchain-groq
 langchain-google-genai
 requests
 pydantic
+fastapi
+uvicorn[standard]
+python-multipart
