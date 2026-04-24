@@ -1,6 +1,6 @@
 import json
 from langchain.tools import tool
-from services.score_service import ScoreService
+from agents.entrevista.service import ScoreService
 from exceptions.auth_exceptions import ClienteNaoEncontradoError
 from utils.logger import log_erro
 

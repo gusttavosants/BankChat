@@ -1,5 +1,5 @@
 import pytest
-from services.score_service import ScoreService
+from agents.entrevista.service import ScoreService
 
 class DummyClientesRepo:
     def get_by_cpf(self, cpf):

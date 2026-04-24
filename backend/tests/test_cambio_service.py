@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from services.cambio_service import CambioService
+from agents.cambio.service import CambioService
 from exceptions.cambio_exceptions import MoedaNaoSuportadaError, APIIndisponivelError
 
 def test_moeda_nao_suportada():

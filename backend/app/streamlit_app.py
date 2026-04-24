@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_core.messages import HumanMessage, AIMessage
-from graph import app_graph
-from state import BancoAgilState
+from core.graph import app_graph
+from core.state import BancoAgilState
 
 st.set_page_config(page_title="Banco Ágil", page_icon="🏦", layout="centered")
 

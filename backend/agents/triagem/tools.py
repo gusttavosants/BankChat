@@ -1,6 +1,6 @@
 import json
 from langchain.tools import tool
-from services.auth_service import AuthService
+from agents.triagem.service import AuthService
 from exceptions.auth_exceptions import ClienteNaoEncontradoError, CredenciaisInvalidasError
 from utils.logger import log_erro
 

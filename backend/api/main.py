@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.checkpoint.memory import MemorySaver
 
-from graph import workflow
+from core.graph import workflow
 
 # ── Persistence & Graph ────────────────────────────────────────────────
 memory = MemorySaver()

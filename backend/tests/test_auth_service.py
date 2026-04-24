@@ -1,5 +1,5 @@
 import pytest
-from services.auth_service import AuthService
+from agents.triagem.service import AuthService
 from exceptions.auth_exceptions import CredenciaisInvalidasError, ClienteNaoEncontradoError
 
 class DummyClientesRepo:

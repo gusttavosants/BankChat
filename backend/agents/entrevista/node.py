@@ -1,9 +1,9 @@
 from langgraph.prebuilt import create_react_agent
-from config import LLM
-from tools.score_tools import calcular_score, atualizar_score
-from tools.credito_tools import consultar_limite, solicitar_aumento, verificar_score_limite
-from tools.encerramento_tools import encerrar_atendimento
-from state import BancoAgilState
+from core.config import LLM
+from agents.entrevista.tools import calcular_score, atualizar_score
+from agents.credito.tools import consultar_limite, solicitar_aumento, verificar_score_limite
+from agents.shared.encerramento import encerrar_atendimento
+from core.state import BancoAgilState
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
 
 system_prompt = (

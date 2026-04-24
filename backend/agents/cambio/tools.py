@@ -1,5 +1,5 @@
 from langchain.tools import tool
-from services.cambio_service import CambioService
+from agents.cambio.service import CambioService
 from exceptions.cambio_exceptions import APIIndisponivelError, MoedaNaoSuportadaError
 
 cambio_service = CambioService()

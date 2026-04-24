@@ -1,8 +1,8 @@
 from langgraph.prebuilt import create_react_agent
-from config import LLM
-from tools.cambio_tools import consultar_cotacao
-from tools.encerramento_tools import encerrar_atendimento
-from state import BancoAgilState
+from core.config import LLM
+from agents.cambio.tools import consultar_cotacao
+from agents.shared.encerramento import encerrar_atendimento
+from core.state import BancoAgilState
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
 
 system_prompt = (

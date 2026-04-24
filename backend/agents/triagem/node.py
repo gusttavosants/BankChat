@@ -1,8 +1,8 @@
 from langgraph.prebuilt import create_react_agent
-from config import LLM
-from tools.auth_tools import autenticar_cliente, verificar_cpf
-from tools.encerramento_tools import encerrar_atendimento
-from state import BancoAgilState
+from core.config import LLM
+from agents.triagem.tools import autenticar_cliente, verificar_cpf
+from agents.shared.encerramento import encerrar_atendimento
+from core.state import BancoAgilState
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
 
 system_prompt = (
@@ -87,14 +87,17 @@ def agente_triagem_node(state: BancoAgilState):
             if tool_name == 'encerrar_atendimento' or '"encerrado": true' in m.content.lower():
                 encerrado = True
             
-            # Detecta falhas em ferramentas de autenticação
-            if tool_name in ['verificar_cpf', 'autenticar_cliente']:
+            # Detecção de falhas de autenticação (CPF ou Data)
+            is_auth_tool = tool_name in ['verificar_cpf', 'autenticar_cliente']
+            if is_auth_tool:
                 import json
                 try:
                     res_data = json.loads(m.content)
-                    if res_data.get("status_code") == 200:
+                    status = res_data.get("status_code")
+                    
+                    if status == 200:
                         if tool_name == 'verificar_cpf':
-                            # Extrai o CPF para o estado
+                            # Busca o CPF nos argumentos da chamada correspondente
                             for prev_msg in reversed(all_res_messages):
                                 if hasattr(prev_msg, "tool_calls"):
                                     for tc in prev_msg.tool_calls:
@@ -110,9 +113,11 @@ def agente_triagem_node(state: BancoAgilState):
                                 cpf_cliente = data.get("cpf")
                                 tentativas = 0
                     else:
+                        # Qualquer status diferente de 200 (401, 404, 500) conta como tentativa
                         tentativas += 1
-                except:
-                    tentativas += 1 # Conta erro de parsing como tentativa falha por segurança
+                except Exception as e:
+                    # Falha no processamento do retorno também conta como erro de segurança
+                    tentativas += 1
 
     if tentativas >= 3 and not auth_sucesso:
         encerrado = True

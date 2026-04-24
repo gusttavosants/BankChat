@@ -1,9 +1,9 @@
 from langgraph.graph import StateGraph, END
-from state import BancoAgilState
-from agents.triagem import agente_triagem_node
-from agents.credito import agente_credito_node
-from agents.entrevista import agente_entrevista_node
-from agents.cambio import agente_cambio_node
+from core.state import BancoAgilState
+from agents.triagem.node import agente_triagem_node
+from agents.credito.node import agente_credito_node
+from agents.entrevista.node import agente_entrevista_node
+from agents.cambio.node import agente_cambio_node
 from langchain_core.messages import AIMessage, HumanMessage
 
 def define_entry_point(state: BancoAgilState):

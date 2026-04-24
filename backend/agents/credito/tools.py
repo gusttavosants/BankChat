@@ -1,6 +1,6 @@
 import json
 from langchain.tools import tool
-from services.credito_service import CreditoService
+from agents.credito.service import CreditoService
 from exceptions.auth_exceptions import ClienteNaoEncontradoError
 from exceptions.credito_exceptions import ScoreInsuficienteError
 from utils.logger import log_erro
