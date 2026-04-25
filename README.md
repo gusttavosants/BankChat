@@ -1,107 +1,212 @@
-# 🏦 Banco Ágil - Agente Bancário Inteligente
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4deb58e7-9fce-40d0-be78-9bc505c40eeb" alt="Banco Ágil — Plataforma de Agentes Inteligentes" width="100%"/>
+</p>
 
-Sistema de atendimento bancário digital construído com múltiplos agentes de Inteligência Artificial usando **LangGraph** e **Streamlit**. Este sistema simula o atendimento completo de um banco digital, orquestrando tarefas como autenticação, consulta de limite, análise de crédito (entrevista financeira) e consulta de cotações em tempo real.
-
----
-
-## 🏗️ Arquitetura do Sistema
-
-O Banco Ágil utiliza uma arquitetura de **Micro-Agentes Orquestrados** via Grafos de Estado (State Graphs). A lógica é separada por "nós" (nodes), onde cada nó representa um especialista.
-
-<img width="1271" height="388" alt="image" src="https://github.com/user-attachments/assets/4deb58e7-9fce-40d0-be78-9bc505c40eeb" />
-https://drive.google.com/file/d/10r3nPogTvCEYKHrvI9Qr_k2RWA2NFJbu/view?usp=drive_link
-*(A imagem acima ilustra o fluxo de estados e a interação entre os agentes)*
-
-### Componentes Principais:
-- **Estado Global (`state.py`)**: Um dicionário tipado que mantém o contexto da conversa, dados do cliente autenticado e flags de controle (ex: `analise_realizada`).
-- **Grafo de Orquestração (`graph.py`)**: Define as transições entre agentes. Utiliza um **Router** inteligente que interpreta mensagens de sistema e intenções do usuário para decidir o próximo passo.
-- **Camada de Serviços (`services/`)**: Contém a lógica de negócio pura (cálculo de score, integração com APIs, regras de crédito).
-- **Camada de Dados (`repositories/`)**: Abstração para persistência de dados em arquivos CSV, garantindo que as informações do cliente persistam entre sessões.
-
-### Fluxo de Dados:
-1. O usuário interage via UI (Streamlit).
-2. A mensagem é enviada para o Grafo.
-3. O Agente Atual processa a mensagem usando Ferramentas (`tools/`).
-4. O resultado pode disparar uma transição (handoff) para outro agente.
-5. O estado é atualizado e a resposta retorna para a interface.
+<p align="center">
+  <img src="https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white" alt="Vite"/>
+  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black" alt="React"/>
+  <img src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python"/>
+  <img src="https://img.shields.io/badge/LangGraph-Latest-orange" alt="LangGraph"/>
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css&logoColor=white" alt="Tailwind CSS"/>
+</p>
 
 ---
 
-## 🤖 Agentes Especializados
+## Visão Geral
 
-1. **Agente de Triagem**: Responsável pelas boas-vindas e pela **Autenticação Segura**. Valida CPF e Data de Nascimento antes de liberar acesso aos serviços.
-2. **Agente de Crédito**: Consulta limites e processa pedidos de aumento. Possui lógica para detectar quando uma análise financeira mais profunda é necessária.
-3. **Agente de Entrevista (Score)**: Conduz uma conversa estruturada para coletar dados financeiros (renda, despesas, dependentes) e recalcular o score do cliente dinamicamente.
-4. **Agente de Câmbio**: Integrado à **AwesomeAPI**, fornece cotações em tempo real de USD, EUR, GBP e BTC.
+O **Banco Ágil** é uma plataforma de atendimento bancário baseada em **agentes de inteligência artificial especializados**. Cada agente possui um domínio de competência específico (câmbio, crédito, entrevista de crédito) e opera de forma autônoma dentro do seu escopo, sendo orquestrado por um grafo de estados que classifica a intenção do cliente e direciona para o especialista adequado.
 
----
+A plataforma permite uma interação fluida onde o usuário pode consultar limites, solicitar aumentos e obter cotações de moedas em tempo real, tudo através de uma interface de chat premium que simula um atendimento de concierge digital.
 
-## ✨ Funcionalidades Implementadas
+### Principais capacidades
 
-- [x] **Autenticação em 2 Etapas**: Validação de CPF e nascimento com limite de 3 tentativas.
-- [x] **Consulta de Limite**: Visualização imediata do limite de crédito atual.
-- [x] **Aumento de Limite Inteligente**: Aprovação automática baseada em score ou encaminhamento para entrevista.
-- [x] **Entrevista de Crédito Conversacional**: Coleta de dados financeiros de forma natural.
-- [x] **Cálculo de Score Dinâmico**: Algoritmo que pondera renda, estabilidade no emprego e compromissos financeiros.
-- [x] **Câmbio em Tempo Real**: Integração externa para cotações atualizadas.
-- [x] **Tratamento de Erros**: Sistema de logs e mensagens de erro amigáveis para instabilidades técnicas.
+- **Multi-agente com roteamento inteligente**: Triagem automática por intenção via LangGraph, com redirecionamento transparente entre agentes especialista.
+- **Memória de Curto e Longo Prazo**: Persistência de contexto da conversa via checkpointers do LangGraph.
+- **Cálculo de Score Dinâmico**: Algoritmo que processa dados financeiros coletados durante a entrevista para atualizar o perfil de crédito.
+- **LLM Gateway Multi-provider**: Suporte configurável para Groq, Google Gemini, OpenAI e OpenRouter (MiniMax).
+- **Interface Dual**: Backend que serve tanto uma aplicação moderna em React quanto uma interface administrativa em Streamlit.
 
 ---
 
-## 🛠️ Escolhas Técnicas e Justificativas
+## Arquitetura do Sistema
 
-- **LangGraph**: Escolhido pela capacidade de criar fluxos cíclicos e manter o estado da conversa de forma robusta, essencial para handoffs entre agentes.
-- **LangChain Tools**: Facilita a expansão do sistema; adicionar uma nova funcionalidade bancária é tão simples quanto criar uma nova função decorada com `@tool`.
-- **Pandas/CSV**: Utilizado para persistência local rápida e fácil auditoria dos dados de teste sem necessidade de configurar um banco de dados complexo (como PostgreSQL) para este desafio.
-- **Logging Centralizado**: Implementado para garantir que erros técnicos sejam registrados para análise sem interromper a interação do cliente.
+### Agentes e fluxo de roteamento
+
+O sistema opera com uma arquitetura multi-agente onde cada nó do grafo é um especialista isolado:
+
+| Agente | Slug | Responsabilidade | Ferramentas |
+|---|---|---|---|
+| **Triagem** | `triagem` | Boas-vindas e Autenticação. Valida o cliente e direciona para o serviço solicitado. | `validar_cpf`, `verificar_nascimento` |
+| **Crédito** | `credito` | Consulta limites atuais e processa pedidos de aumento imediato. | `consultar_limite`, `solicitar_aumento` |
+| **Entrevista** | `entrevista` | Conduz entrevista estruturada para coleta de dados financeiros e atualização de score. | `coletar_dados`, `atualizar_score` |
+| **Câmbio** | `cambio` | Consulta cotações de moedas (USD, EUR, BTC) em tempo real via API externa. | `consultar_cotacao` |
+
+### Fluxo de Decisão (Mermaid)
+
+```mermaid
+graph TD
+    User((Usuário)) --> T[Agente de Triagem]
+    T -- Sucesso Auth --> R{Roteador de Intenção}
+    R --> C[Agente de Crédito]
+    R --> E[Agente de Entrevista]
+    R --> X[Agente de Câmbio]
+    
+    C -- Necessita Info --> E
+    E -- Score Atualizado --> C
+    X -- Nova Consulta --> R
+    
+    subgraph "Camada de Inteligência (LangGraph)"
+    T
+    R
+    C
+    E
+    X
+    end
+```
+
+### Modelo de Dados (Persistência CSV)
+
+```mermaid
+erDiagram
+    CLIENTE {
+        string cpf PK
+        string nome
+        string data_nascimento
+        float score
+        float limite_atual
+    }
+    SOLICITACAO {
+        string id PK
+        string cpf FK
+        string tipo
+        string status
+        datetime data
+    }
+    CLIENTE ||--o{ SOLICITACAO : "possui"
+```
 
 ---
 
-## 🧠 Desafios Enfrentados e Soluções
+## Funcionalidades Implementadas
 
-- **Loops Infinitos de Agentes**: Durante o desenvolvimento, os agentes às vezes entravam em loop pedindo a mesma informação. **Solução**: Implementação de flags de estado (ex: `analise_realizada`) que bloqueiam reentradas em fluxos já concluídos.
-- **Alucinações em Transições**: O LLM ocasionalmente "esquecia" de apresentar o menu após uma transferência. **Solução**: Refinamento dos prompts de sistema com instruções de "Primeira Tarefa" e uso de gatilhos naturais nas transições.
-- **Consistência de Dados**: Garantir que o score calculado na entrevista fosse refletido no limite de crédito. **Solução**: Centralização da lógica de atualização no `ScoreService`, que agora atualiza score e limite de forma atômica no repositório.
+### Motor de Conversação (Agent Runtime)
+- **Orquestração LangGraph**: Grafo de estados cíclico que gerencia transições e estados de forma robusta.
+- **Tool Calling Nativo**: Integração direta entre o LLM e as funções de negócio (services).
+- **Handoff Transparente**: O sistema troca o agente ativo na conversa mantendo o histórico completo.
+- **Streaming SSE**: Respostas token-a-token no frontend para redução da latência percebida.
+- **Sistema de Checkpoints**: Capacidade de retomar conversas de onde pararam.
+
+### Interface do Usuário (Frontend)
+- **Chat Estilo Concierge**: Design minimalista focado em experiência premium.
+- **Feedback de Digitação**: Indicadores visuais de que o agente está processando a informação.
+- **Validação de Formulários**: Input de CPF e datas com validação em tempo real via Zod.
+- **Responsividade Total**: Interface otimizada para mobile e desktop.
+
+### Conversation API (FastAPI)
+- **Endpoints REST**: `/chat` para interações síncronas e `/chat/stream` para streaming SSE.
+- **Health Checks**: Endpoint `/health` para monitoramento do status do serviço.
+- **Middleware CORS**: Configurado para comunicação segura entre frontend e backend.
 
 ---
 
-## 🚀 Tutorial de Execução
+## Escolhas Técnicas e Justificativas
+
+### Linguagens e Frameworks
+
+| Escolha | Justificativa |
+|---|---|
+| **Vite + React (TS)** | Entrega uma interface extremamente rápida e tipada, essencial para componentes complexos de chat. |
+| **FastAPI (Python)** | O padrão ouro para APIs de IA em Python, oferecendo suporte assíncrono nativo para streaming. |
+| **LangGraph** | Supera cadeias lineares (LangChain) ao permitir loops e lógica de decisão complexa entre agentes. |
+| **Shadcn/UI** | Componentes de alta qualidade que garantem a estética "premium" com baixo custo de manutenção. |
+
+### Persistência e Integrações
+
+| Escolha | Justificativa |
+|---|---|
+| **CSV / Pandas** | Permite auditoria imediata dos dados de teste sem necessidade de subir um servidor de banco de dados. |
+| **AwesomeAPI** | Fonte confiável e gratuita para cotações de câmbio em tempo real. |
+| **Multi-Provider LLM** | Flexibilidade para usar Groq (velocidade), Google (janela de contexto) ou OpenRouter (diversidade de modelos). |
+
+---
+
+## Tutorial de Execução e Testes
 
 ### Pré-requisitos
-- Python 3.10 ou superior.
+- Python 3.10+
+- Node.js 18+
+- Chave de API de um provedor (Groq, OpenRouter ou Google)
 
-### Instalação
-1. Clone o repositório.
-2. Crie e ative seu ambiente virtual:
-   ```bash
-   python -m venv venv
-   # Windows:
-   venv\Scripts\activate
-   ```
-3. Instale as dependências:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 1. Instalação
 
-### Configuração
-Crie um arquivo `.env` na raiz do projeto:
+```bash
+# Clone o repositório
+git clone https://github.com/gusttavosants/BankChat.git
+cd BankChat
+
+# Setup Backend
+cd backend
+python -m venv .venv
+source .venv/bin/activate # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# Setup Frontend
+cd ../frontend
+npm install
+```
+
+### 2. Configuração do `.env`
+
+Crie o arquivo `backend/.env`:
 ```ini
-OPENROUTER_API_KEY=sua_chave_aqui
-LLM_PROVIDER=openrouter
-MODEL_NAME=openrouter/free
+# API Keys
+GROQ_API_KEY=gsk_...
+OPENROUTER_API_KEY=sk-or-v1-...
+
+# Configurações de LLM
+LLM_PROVIDER=openrouter # groq | google | openrouter
+MODEL_NAME=minimax/minimax-01 # ou llama-3.1-8b-instant
 ```
 
-### Execução
-Inicie o sistema com:
+### 3. Execução
+
+Você precisará de dois terminais abertos:
+
+**Terminal 1 (Backend - API):**
 ```bash
-streamlit run app.py
+cd backend
+uvicorn api.main:app --reload --port 8000
 ```
 
-### Testes
-Para rodar a suíte de testes automatizados:
+**Terminal 2 (Frontend - Web):**
 ```bash
-pytest tests/
+cd frontend
+npm run dev
 ```
 
 ---
-*Desenvolvido como parte do desafio técnico para Agente Bancário Inteligente.*
+
+## Estrutura do Repositório
+
+```text
+banco-agil/
+├── backend/                # API e Lógica de Agentes
+│   ├── agents/             # Definição dos agentes LangGraph
+│   ├── api/                # Servidor FastAPI (main.py)
+│   ├── app/                # Interface Streamlit (Testes)
+│   ├── core/               # Orquestração, Configuração e Estado
+│   ├── repositories/       # Persistência de Dados (CSV)
+│   ├── services/           # Regras de Negócio e APIs externas
+│   └── tests/              # Suíte de Testes com Pytest
+├── frontend/               # Aplicação Web (Vite + React)
+│   ├── src/
+│   │   ├── components/     # UI Components e Lógica de Chat
+│   │   ├── hooks/          # Hooks de API e Estado
+│   │   └── pages/          # Layouts Principais
+│   └── package.json
+└── README.md
+```
+
+---
+*Desenvolvido por Gustavo Santos como parte do desafio técnico para Agente Bancário Inteligente.*
