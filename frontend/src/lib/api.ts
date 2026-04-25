@@ -1,11 +1,9 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-export interface ChatApiResponse {
+export interface ChatResponse {
   reply: string;
   thread_id: string;
   agente_atual: string;
   cliente_autenticado: boolean;
-  dados_cliente: Record<string, unknown> | null;
+  dados_cliente: Record<string, any> | null;
   encerrado: boolean;
   tentativas_auth: number;
 }
@@ -13,23 +11,24 @@ export interface ChatApiResponse {
 export async function sendMessage(
   message: string,
   threadId: string | null
-): Promise<ChatApiResponse> {
-  const res = await fetch(`${API_URL}/chat`, {
+): Promise<ChatResponse> {
+  // Uses Vite env var or fallback
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  
+  const res = await fetch(`${apiUrl}/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, thread_id: threadId }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      message,
+      thread_id: threadId,
+    }),
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err || "Falha na comunicação com o servidor.");
+    throw new Error(`Failed to send message: ${res.statusText}`);
   }
 
-  return res.json();
-}
-
-export async function getSession(threadId: string) {
-  const res = await fetch(`${API_URL}/session/${threadId}`);
-  if (!res.ok) return null;
   return res.json();
 }
