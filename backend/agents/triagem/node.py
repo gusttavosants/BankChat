@@ -4,6 +4,7 @@ from agents.triagem.tools import autenticar_cliente, verificar_cpf
 from agents.shared.encerramento import encerrar_atendimento
 from core.state import BancoAgilState
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
+from utils.formatters import clean_llm_response
 
 system_prompt = (
     "Você atua como o assistente virtual do Banco Ágil. Seu papel é receber os clientes com cordialidade e realizar a autenticação de segurança antes de qualquer serviço.\n\n"
@@ -11,18 +12,24 @@ system_prompt = (
     "- Comece sempre com uma saudação calorosa e boas-vindas ao Banco Ágil. Explique que, por segurança, você precisa confirmar alguns dados antes de prosseguir.\n"
     "- O processo de segurança é rigoroso e possui apenas 3 tentativas NO TOTAL (contando erros de CPF e Data). Após a 3ª falha, o atendimento será encerrado automaticamente.\n"
     "- Siga sempre estas duas etapas: 1. Peça o CPF e valide com 'verificar_cpf'. Somente após o sucesso, 2. Peça a data de nascimento e valide com 'autenticar_cliente'.\n"
+    "- OBRIGATÓRIO: Você DEVE chamar a ferramenta 'verificar_cpf' TODA VEZ que o cliente fornecer um CPF, mesmo que ele repita um número que já falhou antes.\n"
     "- Se houver erro em qualquer etapa, informe o cliente e diga quantas tentativas ele ainda possui do total de 3.\n"
-    "- Após a autenticação, cumprimente-o pelo nome e ofereça: 1. Câmbio ou 2. Crédito.\n"
+    "- Após a autenticação, cumprimente-o pelo nome e OBRIGATORIAMENTE ofereça as opções usando numeração explícita: '1. Câmbio ou 2. Crédito'. É crucial que os números 1. e 2. sejam exibidos.\n"
     "- Caso o cliente selecione uma opção, apenas confirme a transição (ex: 'Perfeito, vou verificar as informações de Crédito...') e deixe que o especialista assuma.\n\n"
     "Diretrizes técnicas:\n"
     "- Nunca tente realizar consultas de limites ou cotações neste estágio de triagem.\n"
     "- Faça apenas uma pergunta por vez e nunca pule a etapa de validação do CPF.\n"
     "- Em caso de instabilidade nas ferramentas, peça desculpas e sugira tentar novamente em instantes, sem expor detalhes técnicos ou logs.\n"
-    "- Mantenha a formatação de valores no padrão brasileiro (R$ X.XXX,XX)."
+    "- Mantenha a formatação de valores no padrão brasileiro (R$ X.XXX,XX).\n"
+    "- NUNCA use emojis, asteriscos, underscores ou qualquer marcação markdown nas suas respostas. Use somente texto puro."
 )
 
 tools = [autenticar_cliente, verificar_cpf, encerrar_atendimento]
 agent = create_react_agent(LLM, tools=tools, prompt=system_prompt)
+
+def _safe_msg(text: str) -> str:
+    if not text: return text
+    return text.replace("\u2011", "-").replace("\u2013", "-").replace("\u2014", "--").replace("\u201d", '"').replace("\u201c", '"').replace("\u2019", "'").replace("\u2018", "'")
 
 def agente_triagem_node(state: BancoAgilState):
     tentativas = state.get("tentativas_auth", 0)
@@ -31,32 +38,29 @@ def agente_triagem_node(state: BancoAgilState):
     # Bloqueio imediato se o limite já foi atingido em turnos anteriores
     if tentativas >= 3 and not auth_sucesso:
         return {
-            "messages": [AIMessage(content="Limite de 3 tentativas excedido. O atendimento foi encerrado.", name="triagem")],
+            "messages": [AIMessage(content=_safe_msg("Limite de 3 tentativas excedido. O atendimento foi encerrado."), name="triagem")],
             "encerrado": True
         }
 
     messages = state["messages"]
     transferencia = state.get("agente_atual") != "triagem"
     
-    # Injeta contexto de segurança para o LLM
     ctx_auth = ""
     if tentativas > 0:
-        ctx_auth = f"SEGURANÇA: O cliente já falhou {tentativas} vezes. Ele tem apenas {3 - tentativas} tentativa(s) RESTANTE(S) do total de 3."
+        ctx_auth = f"INSTRUÇÃO INTERNA E SECRETA DO SISTEMA (NÃO REPITA ESSE TEXTO PARA O USUÁRIO): O cliente já falhou {tentativas} vezes. Ele tem apenas {3 - tentativas} tentativa(s) RESTANTE(S) do total de 3."
     
     cpf_validado = state.get("cpf_cliente")
     if cpf_validado:
-        ctx_auth += f" CONTEXTO: O CPF {cpf_validado} já foi validado. Peça apenas a data de nascimento."
+        ctx_auth += f" O CPF {cpf_validado} já foi validado. Peça apenas a data de nascimento, mas avise sobre as tentativas restantes se houver."
     
-    current_messages = []
+    current_messages = list(messages)
     if ctx_auth:
         current_messages.append(SystemMessage(content=ctx_auth))
-    
-    current_messages.extend(messages)
 
     if transferencia:
         prompt_transferencia = (
             "Você é o Atendimento Ágil. O cliente voltou para a triagem. "
-            "Cumprimente-o cordialmente e ofereça o menu: 1. Câmbio, 2. Crédito."
+            "Ofereça o menu: 1. Câmbio, 2. Crédito. IMPORTANTE: Não se apresente novamente nem dê boas-vindas, apenas forneça as opções de forma direta."
         )
         current_messages = current_messages + [
             SystemMessage(content=prompt_transferencia),
@@ -75,14 +79,7 @@ def agente_triagem_node(state: BancoAgilState):
     
     for m in new_messages:
         if isinstance(m, ToolMessage):
-            tool_name = None
-            for prev_msg in reversed(all_res_messages):
-                if hasattr(prev_msg, "tool_calls") and prev_msg.tool_calls:
-                    for tc in prev_msg.tool_calls:
-                        if tc["id"] == m.tool_call_id:
-                            tool_name = tc["name"]
-                            break
-                if tool_name: break
+            tool_name = m.name
 
             if tool_name == 'encerrar_atendimento' or '"encerrado": true' in m.content.lower():
                 encerrado = True
@@ -124,17 +121,18 @@ def agente_triagem_node(state: BancoAgilState):
         # Limpa as mensagens do agente para evitar que ele peça os dados de novo no 3º erro
         new_messages = [m for m in new_messages if not isinstance(m, AIMessage)]
         new_messages.append(AIMessage(
-            content="Limite de 3 tentativas excedido. Por segurança, este atendimento será encerrado agora. Por favor, tente novamente mais tarde.", 
+            content=_safe_msg("Limite de 3 tentativas excedido. Por segurança, este atendimento será encerrado agora. Por favor, tente novamente mais tarde."), 
             name="triagem"
         ))
 
     # Persiste o CPF no estado se ele foi validado nesta rodada ou já existia
     cpf_final = cpf_cliente or state.get("cpf_cliente")
     
-    # Adiciona o nome do agente às mensagens para fins de UI
+    # Adiciona o nome do agente e sanitiza as mensagens para fins de UI e segurança
     for msg in new_messages:
         if isinstance(msg, AIMessage):
             msg.name = "triagem"
+            msg.content = clean_llm_response(_safe_msg(msg.content))
             
     if transferencia:
         new_messages = [m for m in new_messages if not (

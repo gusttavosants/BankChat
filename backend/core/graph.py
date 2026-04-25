@@ -7,8 +7,74 @@ from agents.cambio.node import agente_cambio_node
 from langchain_core.messages import AIMessage, HumanMessage
 
 def define_entry_point(state: BancoAgilState):
-    """Define por qual nó o grafo deve começar com base no agente atual."""
-    return state.get("agente_atual", "triagem")
+    """Define por qual nó o grafo deve começar com base no agente atual,
+    interceptando respostas do usuário que demandam mudança de agente."""
+    agente_atual = state.get("agente_atual", "triagem")
+    messages = state.get("messages", [])
+    
+    if not messages:
+        return agente_atual
+        
+    last_msg_obj = messages[-1]
+    
+    if isinstance(last_msg_obj, HumanMessage):
+        last_message = last_msg_obj.content.lower()
+        is_autenticado = state.get("dados_cliente") is not None
+        
+        # Removido print que causava erro de encoding no Windows
+        pass
+        
+        # 0. Tratamento específico do menu de Boas-Vindas da Triagem
+        if agente_atual == "triagem" and is_autenticado:
+            if last_message == "1" or "cambio" in last_message or "câmbio" in last_message:
+                return "cambio"
+            if last_message == "2" or "credito" in last_message or "crédito" in last_message:
+                return "credito"
+        
+        # 1. Lógica de confirmação contextual
+        for msg in reversed(messages[:-1]):
+            if isinstance(msg, AIMessage):
+                ia_msg = msg.content.lower()
+                
+                # Se a IA propôs entrevista/análise
+                keywords_entrevista = ["entrevista", "análise", "analise", "recalcular score", "confirmar alguns dados", "análise financeira"]
+                if any(k in ia_msg for k in keywords_entrevista):
+                    is_confirmacao = any(k in last_message for k in ["sim", "com certeza", "claro", "pode ser", "quero", "aceito", "ok", "vamos", "prosseguir"])
+                    is_dado_direto = any(c.isdigit() for c in last_message) or (len(last_message.split()) <= 2 and any(c.isdigit() for c in last_message))
+                    if is_confirmacao or is_dado_direto:
+                        if is_autenticado and not state.get("analise_realizada"):
+                            return "entrevista"
+                
+                # Se a IA propôs crédito
+                keywords_credito = ["crédito", "credito", "limite", "aumento", "servico de credito", "serviço de credito"]
+                if any(k in ia_msg for k in keywords_credito) and not ("câmbio" in ia_msg and "crédito" in ia_msg and "câmbio" not in last_message):
+                    is_confirmacao = any(k in last_message for k in ["sim", "claro", "quero", "pode ser", "ok"])
+                    is_opcao = last_message.strip() in ["1", "2"]
+                    if is_confirmacao or (is_opcao and last_message.strip() == "1"):
+                        if is_autenticado:
+                            return "credito"
+
+                # Se a IA propôs câmbio
+                keywords_cambio = ["câmbio", "cambio", "moeda", "cotação", "cotar"]
+                if any(k in ia_msg for k in keywords_cambio):
+                    is_confirmacao = any(k in last_message for k in ["sim", "claro", "quero", "ok"])
+                    is_assunto = any(k in last_message for k in ["dólar", "euro", "cotar", "moeda"])
+                    if is_confirmacao or is_assunto:
+                        if is_autenticado:
+                            return "cambio"
+                break
+                
+        # 2. Detecção por palavras-chave diretas
+        if any(k in last_message for k in ["entrevista", "análise", "analise", "recalcular score"]):
+            if is_autenticado: return "entrevista"
+        if any(k in last_message for k in ["crédito", "credito", "limite"]):
+            if is_autenticado: return "credito"
+        if any(k in last_message for k in ["câmbio", "cambio", "moeda", "cotação"]):
+            if is_autenticado: return "cambio"
+        if any(k in last_message for k in ["triagem", "início", "voltar"]):
+            return "triagem"
+
+    return agente_atual
 
 def router(state: BancoAgilState):
     messages = state.get("messages", [])
@@ -19,13 +85,12 @@ def router(state: BancoAgilState):
     last_message = last_msg_obj.content.lower()
     agente_atual = state.get("agente_atual", "triagem")
     
-    print(f"--- DEBUG ROUTER ---")
-    print(f"Agente Atual: {agente_atual}")
-    print(f"Última Mensagem: {last_message[:50]}...")
+    # Removido print que causava erro de encoding no Windows
+    pass
     
     # Se o estado já sinaliza encerramento (pela flag ou por palavras-chave na mensagem)
     if state.get("encerrado") or any(k in last_message for k in ["encerrar", "encerrado", "sair", "tchau"]):
-        print("Decisão: END (Sinalizado para encerrar)")
+        pass
         return END
 
     # Se a última mensagem é do assistente, verificamos se ele está transferindo
@@ -37,7 +102,7 @@ def router(state: BancoAgilState):
         
         # Se for o menu inicial de boas-vindas, esperamos o usuário
         if is_menu_inicial:
-             print("Decisão: END (Aguardando escolha no menu inicial)")
+             pass
              return END
 
         # Transições Implícitas: Detectamos o assunto mencionado pela IA para mover o contexto
@@ -51,12 +116,11 @@ def router(state: BancoAgilState):
         if "?" in last_message and possivel_transicao:
             # Só transiciona se houver afirmação de ação imediata
             if not any(k in last_message for k in ["vou", "vamos", "estou", "com certeza", "claro"]):
-                print("Decisão: END (Aguardando resposta do usuário à pergunta)")
+                pass
                 return END
 
         # 1. ENTREVISTA (Entrada)
         if any(k in last_message for k in ["entrevista", "análise", "analise", "recalcular score"]) and agente_atual != "entrevista":
-             print("Decisão: Transição Implícita para ENTREVISTA")
              return "entrevista"
 
         # 2. CREDITO (Entrada ou Retorno)
@@ -64,107 +128,26 @@ def router(state: BancoAgilState):
         if any(k in last_message for k in ["crédito", "credito", "limite"]) and agente_atual != "credito":
             if agente_atual == "entrevista":
                 if any(k in last_message for k in ["novo score", "concluído", "concluido", "finalizado", "resultado"]):
-                    print("Decisão: Retorno para CREDITO (Análise Concluída)")
                     return "credito"
                 else:
-                    print("Decisão: Mantendo em ENTREVISTA (Aguardando conclusão da análise)")
                     return "entrevista"
             else:
-                print("Decisão: Transição Implícita para CREDITO")
                 return "credito"
         
         # 3. CAMBIO
         if any(k in last_message for k in ["câmbio", "cambio", "moeda", "cotação"]) and agente_atual != "cambio":
-            print("Decisão: Transição Implícita para CAMBIO")
             return "cambio"
 
         if any(k in last_message for k in ["triagem", "início", "ajudar com câmbio ou crédito"]) and agente_atual != "triagem":
-            print("Decisão: Transição Implícita para TRIAGEM")
             return "triagem"
         
         # Se não houve transferência e a IA fez uma pergunta, paramos
         if "?" in last_message:
-            print("Decisão: END (Aguardando resposta do usuário)")
             return END
             
-        print("Decisão: END (Turno IA finalizado)")
         return END
 
-    # Se a mensagem é do usuário (HumanMessage), decidimos para onde ir
-    # SEGURANÇA: Só permitimos mudar de setor se o usuário já estiver autenticado
-    is_autenticado = state.get("dados_cliente") is not None
-
-    if isinstance(last_msg_obj, HumanMessage):
-        print(f"--- DEBUG ROUTER (USER) ---")
-        print(f"User Message: {last_message}")
-        
-        # 1. Lógica de confirmação contextual: Verificamos se o usuário está respondendo a uma proposta de transição
-        for msg in reversed(messages[:-1]):
-            if isinstance(msg, AIMessage):
-                ia_msg = msg.content.lower()
-                print(f"Analisando proposta anterior da IA: {ia_msg[:100]}...")
-                
-                # Se a IA propôs entrevista/análise
-                keywords_entrevista = ["entrevista", "análise", "analise", "recalcular score", "confirmar alguns dados", "análise financeira"]
-                if any(k in ia_msg for k in keywords_entrevista):
-                    is_confirmacao = any(k in last_message for k in ["sim", "com certeza", "claro", "pode ser", "quero", "aceito", "ok", "vamos", "prosseguir"])
-                    is_dado_direto = any(c.isdigit() for c in last_message) or (len(last_message.split()) <= 2 and any(c.isdigit() for c in last_message))
-                    
-                    print(f"Match ENTREVISTA? Confirmação: {is_confirmacao}, Dado Direto: {is_dado_direto}")
-                    if is_confirmacao or is_dado_direto:
-                        if is_autenticado:
-                            if state.get("analise_realizada"):
-                                print("Bloqueio: Análise já realizada nesta sessão. Mantendo no agente atual.")
-                                return agente_atual
-                            if agente_atual != "entrevista":
-                                print(f"Decisão: Transição para ENTREVISTA")
-                                return "entrevista"
-                        else:
-                            print("Bloqueio: Necessário autenticação para Entrevista")
-                
-                # Se a IA propôs crédito
-                keywords_credito = ["crédito", "credito", "limite", "aumento"]
-                if any(k in ia_msg for k in keywords_credito):
-                    is_confirmacao = any(k in last_message for k in ["sim", "claro", "quero", "pode ser", "ok"])
-                    is_opcao = last_message in ["1", "2"]
-                    print(f"Match CREDITO? Confirmação: {is_confirmacao}, Opção: {is_opcao}")
-                    if is_confirmacao or is_opcao:
-                        if is_autenticado:
-                            if agente_atual != "credito":
-                                print("Decisão: Transição para CREDITO")
-                                return "credito"
-                        else:
-                            print("Bloqueio: Necessário autenticação para Crédito")
-
-                # Se a IA propôs câmbio
-                keywords_cambio = ["câmbio", "cambio", "moeda", "cotação", "cotar"]
-                if any(k in ia_msg for k in keywords_cambio):
-                    is_confirmacao = any(k in last_message for k in ["sim", "claro", "quero", "ok"])
-                    is_assunto = any(k in last_message for k in ["dólar", "euro", "cotar", "moeda"])
-                    print(f"Match CAMBIO? Confirmação: {is_confirmacao}, Assunto: {is_assunto}")
-                    if is_confirmacao or is_assunto:
-                        if is_autenticado:
-                            if agente_atual != "cambio":
-                                print("Decisão: Transição para CAMBIO")
-                                return "cambio"
-                        else:
-                            print("Bloqueio: Necessário autenticação para Câmbio")
-                
-                # Se achamos uma mensagem da IA, paramos de procurar (proposta mais recente)
-                break
-
-        # 2. Detecção por palavras-chave diretas na mensagem do usuário
-        print("Checking direct keywords in User message...")
-        if any(k in last_message for k in ["entrevista", "análise", "analise", "recalcular score"]):
-            if is_autenticado: return "entrevista"
-        if any(k in last_message for k in ["crédito", "credito", "limite"]):
-            if is_autenticado: return "credito"
-        if any(k in last_message for k in ["câmbio", "cambio", "moeda", "cotação"]):
-            if is_autenticado: return "cambio"
-        if any(k in last_message for k in ["triagem", "início", "voltar"]):
-            return "triagem"
-
-    print(f"Decisão Final: Mantendo em {agente_atual}")
+    pass
     return agente_atual
 
 # Constrói o grafo

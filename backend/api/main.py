@@ -22,13 +22,15 @@ app = FastAPI(
     version="1.0.0",
 )
 
+import os
+
+frontend_url = os.getenv("FRONTEND_URL", "*")
+origins = [frontend_url] if frontend_url != "*" else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://*.vercel.app",  # Vercel preview & production
-    ],
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=True if frontend_url != "*" else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -65,6 +67,15 @@ def _extract_reply(state: dict) -> str:
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
+@app.get("/")
+def read_root():
+    return {
+        "message": "Banco Ágil API is running!",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "banco-agil-api"}
@@ -109,7 +120,9 @@ async def chat(body: ChatRequest):
             tentativas_auth=result.get("tentativas_auth", 0),
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        # Simplificamos o log para evitar erros de encoding no console
+        print(f"!!! Erro no chat: {type(exc).__name__}")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post("/chat/stream")
@@ -140,7 +153,6 @@ async def chat_stream(body: ChatRequest):
             async for chunk in app_graph.astream(
                 input_state, config, stream_mode="messages"
             ):
-                # chunk is (message, metadata) tuple when stream_mode="messages"
                 msg, metadata = chunk if isinstance(chunk, tuple) else (chunk, {})
                 if isinstance(msg, AIMessage) and msg.content:
                     payload = json.dumps(
@@ -148,7 +160,6 @@ async def chat_stream(body: ChatRequest):
                     )
                     yield f"data: {payload}\n\n"
 
-            # Final state flush
             final = app_graph.get_state(config)
             meta = json.dumps(
                 {

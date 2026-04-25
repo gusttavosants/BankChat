@@ -1,16 +1,17 @@
 import logging
 import os
 
-LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
-
-LOG_FILE = os.path.join(LOG_DIR, 'errors.log')
+# Garante que a pasta de logs exista
+if not os.path.exists("logs"):
+    os.makedirs("logs")
 
 logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.ERROR,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("logs/app.log", encoding='utf-8'),
+        logging.StreamHandler()
+    ]
 )
 
 logger = logging.getLogger('BancoAgil')

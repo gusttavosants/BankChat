@@ -4,19 +4,22 @@ from agents.credito.tools import consultar_limite, solicitar_aumento, verificar_
 from agents.shared.encerramento import encerrar_atendimento
 from core.state import BancoAgilState
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
+from utils.formatters import clean_llm_response
 
 system_prompt = (
     "Você é o especialista em Crédito do Banco Ágil. Seu objetivo é ajudar o cliente a consultar seu limite atual ou solicitar um aumento.\n\n"
     "Procedimentos de atendimento:\n"
     "- Ao iniciar, apresente o menu: 1. Consultar limite atual, 2. Solicitar aumento de limite.\n"
-    "- Para consultas de limite, informe o valor e pergunte se ele deseja consultar o Câmbio ou encerrar o contato.\n"
+    "- Para consultas de limite, informe o valor e ofereça as opções: solicitar aumento de limite, consultar o serviço de Câmbio ou encerrar o atendimento.\n"
     "- Se o cliente solicitar um aumento, peça o valor desejado e use 'solicitar_aumento'.\n"
     "- Caso o sistema negue o aumento (status 'rejeitado'), ofereça imediatamente uma análise financeira detalhada para recalcular o score. Se ele aceitar, apenas confirme e deixe que o sistema faça a transição automática.\n\n"
     "Regras de negócio:\n"
     "- Coerência de Limite: Se o score sugerir um limite (ex: R$ 2.000,00) menor do que o cliente já possui (ex: R$ 5.000,00), explique que para aumentar acima do valor atual será necessária uma nova análise.\n"
     "- Você já tem acesso aos dados do cliente autenticado; use-os para evitar perguntas redundantes.\n"
     "- Atenha-se estritamente a assuntos de limite de crédito. Formate valores como R$ X.XXX,XX.\n"
-    "- Em caso de erros técnicos, utilize uma linguagem cordial e sugira alternativas sem expor logs internos."
+    "- Em caso de erros técnicos, utilize uma linguagem cordial e sugira alternativas sem expor logs internos.\n"
+    "- NUNCA use emojis, asteriscos, underscores ou qualquer marcação markdown nas suas respostas. Use somente texto puro.\n"
+    "- Responda SEMPRE e EXCLUSIVAMENTE em português do Brasil. NUNCA utilize palavras em inglês (ex: 'possibly', 'maybe')."
 )
 
 tools = [consultar_limite, solicitar_aumento, verificar_score_limite, encerrar_atendimento]
@@ -42,10 +45,10 @@ def agente_credito_node(state: BancoAgilState):
 
     # Se for uma transferência, injetamos a instrução de início
     if transferencia:
-        contexto_agente += "\nSua primeira tarefa agora é: APRESENTE O MENU DE CRÉDITO (1. Consultar limite, 2. Solicitar aumento) e cumprimente o cliente."
+        contexto_agente += "\nSua primeira tarefa agora é: APRESENTE O MENU DE CRÉDITO (1. Consultar limite, 2. Solicitar aumento). IMPORTANTE: Não se apresente novamente nem dê boas-vindas, apenas forneça as opções de forma direta e natural."
         messages = messages + [
             SystemMessage(content=contexto_agente),
-            HumanMessage(content="Olá! Por favor, me mostre as opções de crédito.", name="system")
+            HumanMessage(content="Gostaria de ver as opções de crédito.", name="system")
         ]
     else:
         messages = messages + [SystemMessage(content=contexto_agente)]
@@ -63,11 +66,12 @@ def agente_credito_node(state: BancoAgilState):
     for msg in new_messages:
         if isinstance(msg, AIMessage):
             msg.name = "credito"
+            msg.content = clean_llm_response(msg.content)
             
     # Remove a mensagem gatilho do retorno para não poluir o histórico da UI
     if transferencia:
         new_messages = [m for m in new_messages if not (
-            isinstance(m, HumanMessage) and "me mostre as opções de crédito" in m.content.lower()
+            isinstance(m, HumanMessage) and "opções de crédito" in m.content.lower()
         )]
             
     return {"messages": new_messages, "agente_atual": "credito", "encerrado": encerrado}
