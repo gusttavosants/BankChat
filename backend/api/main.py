@@ -81,6 +81,12 @@ def health():
     return {"status": "ok", "service": "banco-agil-api"}
 
 
+@app.get("/cron/ping")
+async def cron_ping():
+    """Endpoint para manter a instância do Render ativa via Cron Job."""
+    return {"status": "active", "message": "Keep-alive ping received"}
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest):
     """Sends a message and returns the agent response (synchronous)."""
