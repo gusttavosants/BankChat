@@ -67,24 +67,8 @@ graph TD
 
 ### Modelo de Dados (Persistência CSV)
 
-```mermaid
-erDiagram
-    CLIENTE {
-        string cpf PK
-        string nome
-        string data_nascimento
-        float score
-        float limite_atual
-    }
-    SOLICITACAO {
-        string id PK
-        string cpf FK
-        string tipo
-        string status
-        datetime data
-    }
-    CLIENTE ||--o{ SOLICITACAO : "possui"
-```
+<img width="744" height="741" alt="image" src="https://github.com/user-attachments/assets/fb5005a9-55f5-4356-b6ae-b87e4675f929" />
+
 
 ---
 
