@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/4deb58e7-9fce-40d0-be78-9bc505c40eeb" alt="Banco Ágil — Plataforma de Agentes Inteligentes" width="100%"/>
+  <img src="/home/gustvo/.gemini/antigravity/brain/976c4f5d-d993-4abe-b3f4-82ced2b54b36/bankchat_banner_1777207387334.png" alt="Banco Ágil — Plataforma de Agentes Inteligentes" width="100%"/>
 </p>
 
 <p align="center">
@@ -8,32 +8,40 @@
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white" alt="FastAPI"/>
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/LangGraph-Latest-orange" alt="LangGraph"/>
-  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css&logoColor=white" alt="Tailwind CSS"/>
+  <img src="https://img.shields.io/badge/Supabase-Database-3ECF8E?logo=supabase&logoColor=white" alt="Supabase"/>
 </p>
 
 ---
 
 ## Visão Geral
 
-O **Banco Ágil** é uma plataforma de atendimento bancário baseada em **agentes de inteligência artificial especializados**. Cada agente possui um domínio de competência específico (câmbio, crédito, entrevista de crédito) e opera de forma autônoma dentro do seu escopo, sendo orquestrado por um grafo de estados que classifica a intenção do cliente e direciona para o especialista adequado.
+O **Banco Ágil** é uma plataforma de atendimento bancário baseada em **agentes de inteligência artificial especializados**. Cada agente possui um domínio de competência específico (câmbio, crédito, entrevista de crédito) e opera de forma autônoma dentro do seu escopo, sendo orquestrado por um grafo de estados (LangGraph) que classifica a intenção do cliente e direciona para o especialista adequado.
 
 A plataforma permite uma interação fluida onde o usuário pode consultar limites, solicitar aumentos e obter cotações de moedas em tempo real, tudo através de uma interface de chat premium que simula um atendimento de concierge digital.
 
 ### Principais capacidades
 
-- **Multi-agente com roteamento inteligente**: Triagem automática por intenção via LangGraph, com redirecionamento transparente entre agentes especialista.
+- **Multi-agente com roteamento inteligente**: Triagem automática por intenção via LangGraph, com redirecionamento transparente entre agentes especialistas.
 - **Memória de Curto e Longo Prazo**: Persistência de contexto da conversa via checkpointers do LangGraph.
-- **Cálculo de Score Dinâmico**: Algoritmo que processa dados financeiros coletados durante a entrevista para atualizar o perfil de crédito.
+- **Cálculo de Score Dinâmico**: Algoritmo que processa dados financeiros coletados durante a entrevista para atualizar o perfil de crédito no Supabase.
 - **LLM Gateway Multi-provider**: Suporte configurável para Groq, Google Gemini, OpenAI e OpenRouter (MiniMax).
-- **Interface Dual**: Backend que serve tanto uma aplicação moderna em React quanto uma interface administrativa em Streamlit.
+- **Interface Premium**: Aplicação moderna em React com Shadcn/UI e animações fluidas.
 
 ---
 
 ## Arquitetura do Sistema
 
-### Agentes e fluxo de roteamento
+### Visão Geral da Arquitetura
 
-O sistema opera com uma arquitetura multi-agente onde cada nó do grafo é um especialista isolado:
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4deb58e7-9fce-40d0-be78-9bc505c40eeb" alt="Arquitetura Banco Ágil" width="100%"/>
+</p>
+
+### Fluxo de Agentes
+
+<p align="center">
+  <img src="docs/assets/architecture-agents.svg" alt="Arquitetura Multi-Agente" width="100%"/>
+</p>
 
 | Agente | Slug | Responsabilidade | Ferramentas |
 |---|---|---|---|
@@ -42,7 +50,7 @@ O sistema opera com uma arquitetura multi-agente onde cada nó do grafo é um es
 | **Entrevista** | `entrevista` | Conduz entrevista estruturada para coleta de dados financeiros e atualização de score. | `coletar_dados`, `atualizar_score` |
 | **Câmbio** | `cambio` | Consulta cotações de moedas (USD, EUR, BTC) em tempo real via API externa. | `consultar_cotacao` |
 
-### Fluxo de Decisão (Mermaid)
+### Fluxo de Decisão (Graph)
 
 ```mermaid
 graph TD
@@ -65,10 +73,6 @@ graph TD
     end
 ```
 
-### Modelo de Dados (Persistência CSV)
-
-<img width="744" height="741" alt="image" src="https://github.com/user-attachments/assets/fb5005a9-55f5-4356-b6ae-b87e4675f929" />
-
 
 ---
 
@@ -87,31 +91,10 @@ graph TD
 - **Validação de Formulários**: Input de CPF e datas com validação em tempo real via Zod.
 - **Responsividade Total**: Interface otimizada para mobile e desktop.
 
-### Conversation API (FastAPI)
-- **Endpoints REST**: `/chat` para interações síncronas e `/chat/stream` para streaming SSE.
-- **Health Checks**: Endpoint `/health` para monitoramento do status do serviço.
-- **Middleware CORS**: Configurado para comunicação segura entre frontend e backend.
-
----
-
-## Escolhas Técnicas e Justificativas
-
-### Linguagens e Frameworks
-
-| Escolha | Justificativa |
-|---|---|
-| **Vite + React (TS)** | Entrega uma interface extremamente rápida e tipada, essencial para componentes complexos de chat. |
-| **FastAPI (Python)** | O padrão ouro para APIs de IA em Python, oferecendo suporte assíncrono nativo para streaming. |
-| **LangGraph** | Supera cadeias lineares (LangChain) ao permitir loops e lógica de decisão complexa entre agentes. |
-| **Shadcn/UI** | Componentes de alta qualidade que garantem a estética "premium" com baixo custo de manutenção. |
-
-### Persistência e Integrações
-
-| Escolha | Justificativa |
-|---|---|
-| **CSV / Pandas** | Permite auditoria imediata dos dados de teste sem necessidade de subir um servidor de banco de dados. |
-| **AwesomeAPI** | Fonte confiável e gratuita para cotações de câmbio em tempo real. |
-| **Multi-Provider LLM** | Flexibilidade para usar Groq (velocidade), Google (janela de contexto) ou OpenRouter (diversidade de modelos). |
+### Infraestrutura e Persistência
+- **Supabase Cloud**: Banco de dados relacional para persistência de clientes, solicitações e score.
+- **FastAPI (Python)**: API robusta com suporte assíncrono para streaming.
+- **Vite + React (TS)**: Frontend performático e tipado.
 
 ---
 
@@ -142,20 +125,9 @@ npm install
 
 ### 2. Configuração do `.env`
 
-Crie o arquivo `backend/.env`:
-```ini
-# API Keys
-GROQ_API_KEY=gsk_...
-OPENROUTER_API_KEY=sk-or-v1-...
-
-# Configurações de LLM
-LLM_PROVIDER=openrouter # groq | google | openrouter
-MODEL_NAME=minimax/minimax-01 # ou llama-3.1-8b-instant
-```
+Crie o arquivo `backend/.env` com as chaves necessárias (veja `render_env_config.md` para detalhes).
 
 ### 3. Execução
-
-Você precisará de dois terminais abertos:
 
 **Terminal 1 (Backend - API):**
 ```bash
@@ -178,11 +150,10 @@ banco-agil/
 ├── backend/                # API e Lógica de Agentes
 │   ├── agents/             # Definição dos agentes LangGraph
 │   ├── api/                # Servidor FastAPI (main.py)
-│   ├── app/                # Interface Streamlit (Testes)
-│   ├── core/               # Orquestração, Configuração e Estado
-│   ├── repositories/       # Persistência de Dados (CSV)
+│   ├── core/               # Orquestração, Configuração e DB (Supabase)
+│   ├── repositories/       # Camada de acesso a dados
 │   ├── services/           # Regras de Negócio e APIs externas
-│   └── tests/              # Suíte de Testes com Pytest
+│   └── scripts/            # Scripts de migração e utilitários
 ├── frontend/               # Aplicação Web (Vite + React)
 │   ├── src/
 │   │   ├── components/     # UI Components e Lógica de Chat
@@ -193,4 +164,4 @@ banco-agil/
 ```
 
 ---
-*Desenvolvido por Gustavo Santos como parte do desafio técnico para Agente Bancário Inteligente.*
+*Desenvolvido por Gustavo Santos como parte do projeto Banco Ágil.*
