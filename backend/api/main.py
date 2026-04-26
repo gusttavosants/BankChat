@@ -110,10 +110,16 @@ async def chat(body: ChatRequest):
 
         result = app_graph.invoke(input_state, config)
 
+        # ── Debug Log ──────────────────────────────────────────────────
+        agente_final = result.get("agente_atual", "triagem")
+        print(f"\n[DEBUG] Usuário: {body.message}")
+        print(f"[DEBUG] Agente que respondeu: {agente_final.upper()}")
+        print(f"[DEBUG] Thread ID: {thread_id}\n")
+
         return ChatResponse(
             reply=_extract_reply(result),
             thread_id=thread_id,
-            agente_atual=result.get("agente_atual", "triagem"),
+            agente_atual=agente_final,
             cliente_autenticado=result.get("cliente_autenticado", False),
             dados_cliente=result.get("dados_cliente"),
             encerrado=result.get("encerrado", False),
@@ -161,11 +167,18 @@ async def chat_stream(body: ChatRequest):
                     yield f"data: {payload}\n\n"
 
             final = app_graph.get_state(config)
+            agente_final = final.values.get("agente_atual", "triagem")
+            
+            # ── Debug Log ──────────────────────────────────────────────────
+            print(f"\n[DEBUG-STREAM] Usuário: {body.message}")
+            print(f"[DEBUG-STREAM] Agente final: {agente_final.upper()}")
+            print(f"[DEBUG-STREAM] Thread ID: {thread_id}\n")
+
             meta = json.dumps(
                 {
                     "done": True,
                     "thread_id": thread_id,
-                    "agente_atual": final.values.get("agente_atual", "triagem"),
+                    "agente_atual": agente_final,
                     "cliente_autenticado": final.values.get(
                         "cliente_autenticado", False
                     ),

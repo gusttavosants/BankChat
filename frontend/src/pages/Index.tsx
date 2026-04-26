@@ -11,7 +11,8 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 
 const extractOptions = (text: string) => {
   const options: { value: string; label: string }[] = [];
-  const regex = /(?:^|\s)\**([1-9])(?:\.|\uFE0F?\u20E3|\)|-)\**\s+(.*?)(?=\s*(?:[,.?!;]|\n|\r|\bou\b|\be\b|$|[1-9](?:\.|\uFE0F?\u20E3|\)|-)\s))/gi;
+  // Regex exige que o número da opção (1-9) esteja no início da string ou após uma quebra de linha (\n)
+  const regex = /(?:^|\n)\**([1-9])(?:\.|\uFE0F?\u20E3|\)|-)\**\s+(.*?)(?=\s*(?:[,.?!;]|\n|\r|\bou\b|\be\b|$|[1-9](?:\.|\uFE0F?\u20E3|\)|-)\s))/gi;
   let match;
   while ((match = regex.exec(text)) !== null) {
     const label = match[2].trim();
