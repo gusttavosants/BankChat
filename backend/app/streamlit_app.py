@@ -14,7 +14,7 @@ st.set_page_config(page_title="Banco Ágil", page_icon="🏦", layout="centered"
 # Exibe o Banner SVG
 banner_path = os.path.join(os.path.dirname(__file__), "static", "banner.svg")
 if os.path.exists(banner_path):
-    st.image(banner_path, use_container_width=True)
+    st.image(banner_path, width="stretch")
 else:
     st.title("🏦 Banco Ágil - Atendimento Digital")
 
@@ -62,7 +62,7 @@ st.sidebar.badge = st.sidebar.info(f"Agente Atual: {st.session_state.state.get('
 flow_path = os.path.join(os.path.dirname(__file__), "static", "flow.svg")
 if os.path.exists(flow_path):
     with st.sidebar.expander("Visualizar Fluxo de Atendimento", expanded=False):
-        st.image(flow_path, use_container_width=True)
+        st.image(flow_path, width="stretch")
 
 if st.session_state.state.get("cliente_autenticado"):
     dados = st.session_state.state.get("dados_cliente", {})

@@ -6,6 +6,7 @@ from core.state import BancoAgilState
 from core.prompts import apply_global_rules
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
 from utils.formatters import clean_llm_response
+from utils.context_manager import trim_messages
 
 system_prompt = apply_global_rules(
     "Você atua como o assistente virtual do Banco Ágil. Seu papel é receber os clientes com cordialidade e realizar a autenticação de segurança antes de qualquer serviço.\n\n"
@@ -65,10 +66,13 @@ def agente_triagem_node(state: BancoAgilState):
             HumanMessage(content="[MUDANÇA DE CONTEXTO: VOLTAR PARA TRIAGEM]", name="system"),
         ]
 
-    response = agent.invoke({"messages": current_messages})
+    # Otimiza o histórico enviado para a LLM
+    trimmed_messages = trim_messages(current_messages, last_n=15)
+    
+    response = agent.invoke({"messages": trimmed_messages})
     all_res_messages = response["messages"]
     # Remove o SystemMessage de contexto que injetamos no início para o cálculo de offset
-    new_messages = all_res_messages[len(current_messages):]
+    new_messages = all_res_messages[len(trimmed_messages):]
     
     encerrado = state.get("encerrado", False)
     auth_sucesso = False

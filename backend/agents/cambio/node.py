@@ -6,6 +6,7 @@ from core.state import BancoAgilState
 from core.prompts import apply_global_rules
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
 from utils.formatters import clean_llm_response
+from utils.context_manager import trim_messages
 
 system_prompt = apply_global_rules(
     "Você é o consultor de Câmbio do Banco Ágil. Sua única função é fornecer cotações de moedas.\n\n"
@@ -36,11 +37,11 @@ def agente_cambio_node(state: BancoAgilState):
             SystemMessage(content=contexto_agente),
             HumanMessage(content="Quero ver o câmbio."),
         ]
-    else:
-        messages = messages + [SystemMessage(content=contexto_agente)]
-
-    response = agent.invoke({"messages": messages})
-    new_messages = response["messages"][len(messages):]
+    # Otimiza o histórico enviado para a LLM
+    trimmed_messages = trim_messages(messages, last_n=15)
+    
+    response = agent.invoke({"messages": trimmed_messages})
+    new_messages = response["messages"][len(trimmed_messages):]
     
     # Verifica se a ferramenta de encerramento foi chamada
     encerrado = any(

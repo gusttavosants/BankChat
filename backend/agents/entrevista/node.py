@@ -7,6 +7,7 @@ from core.state import BancoAgilState
 from core.prompts import apply_global_rules
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
 from utils.formatters import clean_llm_response
+from utils.context_manager import trim_messages
 
 system_prompt = apply_global_rules(
     "Você é o consultor financeiro do Banco Ágil. Seu papel é coletar dados para recalcular o score de crédito.\n\n"
@@ -46,9 +47,12 @@ def agente_entrevista_node(state: BancoAgilState):
             HumanMessage(content="Inicie a coleta de dados."),
         ]
     
-    response = agent.invoke({"messages": messages})
+    # Otimiza o histórico enviado para a LLM
+    trimmed_messages = trim_messages(messages, last_n=15)
+    
+    response = agent.invoke({"messages": trimmed_messages})
     all_res_messages = response["messages"]
-    new_messages = all_res_messages[len(messages):]
+    new_messages = all_res_messages[len(trimmed_messages):]
     
     # Verifica se a ferramenta de encerramento foi chamada
     encerrado = state.get("encerrado", False)

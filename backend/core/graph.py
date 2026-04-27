@@ -138,7 +138,11 @@ def router(state: BancoAgilState):
         if any(k in last_message for k in ["câmbio", "cambio", "moeda", "cotação"]) and agente_atual != "cambio":
             return "cambio"
 
-        if any(k in last_message for k in ["voltar para a triagem", "menu inicial", "voltar ao início"]) and agente_atual != "triagem":
+        # 4. VOLTAR PARA TRIAGEM
+        if any(k in last_message for k in ["voltar para a triagem", "menu inicial", "voltar ao início", "mais alguma operação", "encerrar"]) and agente_atual != "triagem":
+            # Se a IA perguntou "deseja mais algo", e não detectamos transição acima, podemos voltar para triagem
+            if "?" in last_message and not possivel_transicao:
+                return "triagem"
             return "triagem"
         
         return END
