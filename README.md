@@ -40,6 +40,8 @@ Os dados fluem através de um **Estado Global** (`BancoAgilState`) que persiste 
 - **Autenticação em Duas Etapas**: Validação de CPF e data de nascimento com limite de tentativas.
 - **Roteamento Dinâmico**: Transição entre especialistas baseada em intenção natural (NLP).
 - **Cálculo de Score em Tempo Real**: Algoritmo que processa variáveis socioeconômicas para atualização imediata.
+- **LLM Gateway Multi-provider**: Suporte configurável para Groq, Google Gemini, OpenAI e OpenRouter (MiniMax).
+- **Comportamento Determinístico**: Configuração estrita de `temperature=0.0` em todos os provedores para garantir respostas consistentes, previsíveis e eliminar alucinações em fluxos críticos de crédito.
 - **Cotação Multi-moedas**: Integração com APIs externas para USD, EUR, GBP e BTC.
 - **Interface Premium**: Dashboard de chat responsivo com feedback visual de processamento.
 
