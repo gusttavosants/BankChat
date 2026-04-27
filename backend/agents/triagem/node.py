@@ -3,25 +3,23 @@ from core.config import LLM
 from agents.triagem.tools import autenticar_cliente, verificar_cpf
 from agents.shared.encerramento import encerrar_atendimento
 from core.state import BancoAgilState
+from core.prompts import apply_global_rules
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
 from utils.formatters import clean_llm_response
 
-system_prompt = (
+system_prompt = apply_global_rules(
     "Você atua como o assistente virtual do Banco Ágil. Seu papel é receber os clientes com cordialidade e realizar a autenticação de segurança antes de qualquer serviço.\n\n"
     "Orientações de atendimento:\n"
     "- Comece sempre com uma saudação calorosa e boas-vindas ao Banco Ágil. Explique que, por segurança, você precisa confirmar alguns dados antes de prosseguir.\n"
-    "- O processo de segurança é rigoroso e possui apenas 3 tentativas NO TOTAL (contando erros de CPF e Data). Após a 3ª falha, o atendimento será encerrado automaticamente.\n"
+    "- O processo de segurança é rigoroso e possui apenas 3 tentativas NO TOTAL. Após a 3ª falha, o atendimento será encerrado automaticamente.\n"
     "- Siga sempre estas duas etapas: 1. Peça o CPF e valide com 'verificar_cpf'. Somente após o sucesso, 2. Peça a data de nascimento e valide com 'autenticar_cliente'.\n"
-    "- OBRIGATÓRIO: Você DEVE chamar a ferramenta 'verificar_cpf' TODA VEZ que o cliente fornecer um CPF, mesmo que ele repita um número que já falhou antes.\n"
-    "- Se houver erro em qualquer etapa, informe o cliente e diga quantas tentativas ele ainda possui do total de 3.\n"
-    "- Após a autenticação, cumprimente-o pelo nome e OBRIGATORIAMENTE ofereça as opções usando numeração explícita: '1. Câmbio ou 2. Crédito'. É crucial que os números 1. e 2. sejam exibidos.\n"
-    "- Caso o cliente selecione uma opção, apenas confirme a transição (ex: 'Perfeito, vou verificar as informações de Crédito...') e deixe que o especialista assuma.\n\n"
+    "- OBRIGATÓRIO: Chame 'verificar_cpf' toda vez que o cliente fornecer um CPF.\n"
+    "- Após a autenticação bem-sucedida, cumprimente-o pelo nome e ofereça o menu: '1. Câmbio ou 2. Crédito'.\n"
+    "- Caso o cliente selecione uma opção, apenas confirme a transição e deixe que o especialista assuma.\n\n"
     "Diretrizes técnicas:\n"
-    "- Nunca tente realizar consultas de limites ou cotações neste estágio de triagem.\n"
+    "- Nunca tente realizar consultas de limites ou cotações neste estágio.\n"
     "- Faça apenas uma pergunta por vez e nunca pule a etapa de validação do CPF.\n"
-    "- Em caso de instabilidade nas ferramentas, peça desculpas e sugira tentar novamente em instantes, sem expor detalhes técnicos ou logs.\n"
-    "- Mantenha a formatação de valores no padrão brasileiro (R$ X.XXX,XX).\n"
-    "- NUNCA use emojis, asteriscos, underscores ou qualquer marcação markdown nas suas respostas. Use somente texto puro."
+    "- Em caso de instabilidade, peça desculpas e sugira tentar novamente em instantes."
 )
 
 tools = [autenticar_cliente, verificar_cpf, encerrar_atendimento]
@@ -64,7 +62,7 @@ def agente_triagem_node(state: BancoAgilState):
         )
         current_messages = current_messages + [
             SystemMessage(content=prompt_transferencia),
-            HumanMessage(content="[TRANSFERÊNCIA RECEBIDA]", name="system"),
+            HumanMessage(content="[MUDANÇA DE CONTEXTO: VOLTAR PARA TRIAGEM]", name="system"),
         ]
 
     response = agent.invoke({"messages": current_messages})
@@ -136,7 +134,7 @@ def agente_triagem_node(state: BancoAgilState):
             
     if transferencia:
         new_messages = [m for m in new_messages if not (
-            isinstance(m, HumanMessage) and m.content == "[TRANSFERÊNCIA RECEBIDA]"
+            isinstance(m, HumanMessage) and m.content == "[MUDANÇA DE CONTEXTO: VOLTAR PARA TRIAGEM]"
         )]
             
     if tentativas >= 3 and not auth_sucesso:

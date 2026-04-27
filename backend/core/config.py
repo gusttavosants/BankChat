@@ -15,25 +15,25 @@ def get_llm():
     if LLM_PROVIDER == "groq":
         return ChatGroq(
             model=MODEL_NAME, 
-            temperature=0.2, 
+            temperature=0.0, 
             api_key=os.getenv("GROQ_API_KEY")
         )
     elif LLM_PROVIDER == "google":
         return ChatGoogleGenerativeAI(
             model=MODEL_NAME, 
-            temperature=0.2
+            temperature=0.0
         )
     elif LLM_PROVIDER == "openrouter":
         return ChatOpenAI(
             model=MODEL_NAME, 
-            temperature=0.2, 
+            temperature=0.0, 
             api_key=os.getenv("OPENROUTER_API_KEY"),
             base_url="https://openrouter.ai/api/v1"
         )
     else: # default openai
         return ChatOpenAI(
             model=MODEL_NAME, 
-            temperature=0.2,
+            temperature=0.0,
             api_key=os.getenv("OPENAI_API_KEY")
         )
 

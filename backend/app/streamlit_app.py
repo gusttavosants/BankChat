@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Adiciona a pasta raiz (backend) ao path para resolver os imports de core e agents
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import streamlit as st
 from langchain_core.messages import HumanMessage, AIMessage
 from core.graph import app_graph
@@ -5,7 +11,12 @@ from core.state import BancoAgilState
 
 st.set_page_config(page_title="Banco Ágil", page_icon="🏦", layout="centered")
 
-st.title("🏦 Banco Ágil - Atendimento Digital")
+# Exibe o Banner SVG
+banner_path = os.path.join(os.path.dirname(__file__), "static", "banner.svg")
+if os.path.exists(banner_path):
+    st.image(banner_path, use_container_width=True)
+else:
+    st.title("🏦 Banco Ágil - Atendimento Digital")
 
 # Inicializa state no session_state
 if "state" not in st.session_state:
@@ -47,6 +58,12 @@ while i < len(messages):
 st.sidebar.title("Informações da Sessão")
 st.sidebar.badge = st.sidebar.info(f"Agente Atual: {st.session_state.state.get('agente_atual', 'triagem').title()}")
 
+# Exibe o Fluxo SVG no Sidebar
+flow_path = os.path.join(os.path.dirname(__file__), "static", "flow.svg")
+if os.path.exists(flow_path):
+    with st.sidebar.expander("Visualizar Fluxo de Atendimento", expanded=False):
+        st.image(flow_path, use_container_width=True)
+
 if st.session_state.state.get("cliente_autenticado"):
     dados = st.session_state.state.get("dados_cliente", {})
     st.sidebar.success(f"Autenticado como: {dados.get('nome', 'Cliente')}")
@@ -76,13 +93,21 @@ if prompt := st.chat_input("Digite sua mensagem..."):
     st.session_state.state["messages"].append(user_msg)
     
     with st.spinner("Processando..."):
-        # Executa o grafo com limite de recursão aumentado
-        result = app_graph.invoke(
-            st.session_state.state, 
-            config={"recursion_limit": 50}
-        )
-        
-        # Atualiza o estado
-        st.session_state.state.update(result)
+        try:
+            # Executa o grafo com limite de recursão aumentado
+            result = app_graph.invoke(
+                st.session_state.state, 
+                config={"recursion_limit": 50}
+            )
+            
+            # Atualiza o estado
+            st.session_state.state.update(result)
+        except Exception as e:
+            st.error("Ops! Tivemos uma instabilidade na conexão com nossos servidores de inteligência artificial.")
+            st.warning("Isso geralmente é temporário. Por favor, tente enviar sua mensagem novamente em alguns segundos.")
+            # Remove a última mensagem do usuário para permitir tentar de novo sem duplicar no histórico visual se o usuário reenviar
+            if st.session_state.state["messages"] and isinstance(st.session_state.state["messages"][-1], HumanMessage):
+                st.session_state.state["messages"].pop()
+            st.stop()
 
     st.rerun()

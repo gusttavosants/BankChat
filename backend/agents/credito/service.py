@@ -47,8 +47,9 @@ class CreditoService:
             
         return solicitacao
 
-    def verificar_score(self, score_atual: int, novo_limite: float) -> dict:
-        limite_maximo = self.score_repo.get_limite_maximo(score_atual)
+    def verificar_score(self, score_atual: int, novo_limite: float, limite_atual: float = 0.0) -> dict:
+        teto_score = self.score_repo.get_limite_maximo(score_atual)
+        limite_maximo = max(teto_score, float(limite_atual))
         aprovado = novo_limite <= limite_maximo
         status = "aprovado" if aprovado else "rejeitado"
         

@@ -10,4 +10,3 @@ pydantic
 fastapi
 uvicorn[standard]
 python-multipart
-supabase
