@@ -20,7 +20,8 @@ system_prompt = apply_global_rules(
     "REGRAS DE OURO:\n"
     "- Se esta for a sua PRIMEIRA resposta na análise, sua saída deve ser EXATAMENTE: 'Para iniciarmos a análise, qual é a sua renda mensal bruta?'\n"
     "- Nunca pergunte duas coisas ao mesmo tempo. Responda apenas uma pergunta por vez.\n"
-    "- Use a ferramenta 'calcular_score' somente após coletar TODOS os dados solicitados acima."
+    "- Use a ferramenta 'calcular_score' somente após coletar TODOS os dados solicitados acima.\n"
+    "- Após chamar a ferramenta 'atualizar_score' com sucesso, você DEVE informar que o score foi atualizado e perguntar obrigatoriamente: 'Gostaria de realizar mais alguma operação ou encerrar o atendimento?'. NUNCA encerre o atendimento automaticamente após a atualização."
 )
 
 tools = [calcular_score, atualizar_score, solicitar_aumento, encerrar_atendimento]

@@ -22,43 +22,68 @@ class CambioService:
             if agora < expira:
                 return dados
 
-        url = f"https://economia.awesomeapi.com.br/json/last/{moeda}-BRL"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        
-        tentativas = 3
-        for i in range(tentativas):
-            try:
-                response = requests.get(url, headers=headers, timeout=10)
-                response.raise_for_status()
-                data = response.json()
-                key = f"{moeda}BRL"
-                
-                if key not in data:
-                    raise APIIndisponivelError("Formato de resposta inesperado da API.")
-                    
-                info = data[key]
-                resultado = {
-                    "moeda": moeda,
-                    "moeda_destino": "BRL",
-                    "valor_compra": float(info.get("bid", 0)),
-                    "valor_venda": float(info.get("ask", 0)),
-                    "timestamp": info.get("create_date", agora.isoformat())
-                }
-                
-                # 2. Salva no Cache
-                self._cache[moeda] = (resultado, agora + timedelta(seconds=self.CACHE_TTL))
-                
-                return resultado
+        # 2. Tenta AwesomeAPI (Primária)
+        try:
+            resultado = self._consultar_awesome_api(moeda)
+            self._cache[moeda] = (resultado, agora + timedelta(seconds=self.CACHE_TTL))
+            return resultado
+        except Exception as e:
+            log_erro(f"AwesomeAPI falhou para {moeda}, tentando fallback...", e)
+            
+        # 3. Fallback (Secundária)
+        try:
+            if moeda == "BTC":
+                resultado = self._consultar_coingecko(moeda)
+            else:
+                resultado = self._consultar_frankfurter(moeda)
+            
+            self._cache[moeda] = (resultado, agora + timedelta(seconds=self.CACHE_TTL))
+            return resultado
+        except Exception as e:
+            log_erro(f"Fallback também falhou para {moeda}", e)
+            raise APIIndisponivelError("O serviço de câmbio está temporariamente indisponível em todos os nossos provedores. Por favor, tente novamente mais tarde.")
 
-            except requests.RequestException as e:
-                log_erro(f"CambioService.consultar_cotacao ({moeda} - tentativa {i+1})", e)
-                
-                # Se for erro 429 (Rate Limit), espera mais tempo
-                wait_time = (i + 1) * 2 
-                if i < tentativas - 1:
-                    time.sleep(wait_time)
-                    continue
-                
-                raise APIIndisponivelError("O serviço de câmbio está com alta demanda. Por favor, tente novamente em alguns minutos.")
+    def _consultar_awesome_api(self, moeda: str) -> dict:
+        url = f"https://economia.awesomeapi.com.br/json/last/{moeda}-BRL"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=8)
+        response.raise_for_status()
+        data = response.json()
+        info = data[f"{moeda}BRL"]
+        return {
+            "moeda": moeda,
+            "moeda_destino": "BRL",
+            "valor_compra": float(info.get("bid", 0)),
+            "valor_venda": float(info.get("ask", 0)),
+            "timestamp": info.get("create_date", datetime.now().isoformat())
+        }
+
+    def _consultar_frankfurter(self, moeda: str) -> dict:
+        # Frankfurter usa BRL como destino, suporta USD, EUR, GBP
+        url = f"https://api.frankfurter.app/latest?from={moeda}&to=BRL"
+        response = requests.get(url, timeout=8)
+        response.raise_for_status()
+        data = response.json()
+        valor = data["rates"]["BRL"]
+        return {
+            "moeda": moeda,
+            "moeda_destino": "BRL",
+            "valor_compra": float(valor),
+            "valor_venda": float(valor),
+            "timestamp": f"{data['date']} (via Frankfurter)"
+        }
+
+    def _consultar_coingecko(self, moeda: str) -> dict:
+        # Moeda deve ser 'bitcoin' para o coingecko
+        url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=brl"
+        response = requests.get(url, timeout=8)
+        response.raise_for_status()
+        data = response.json()
+        valor = data["bitcoin"]["brl"]
+        return {
+            "moeda": "BTC",
+            "moeda_destino": "BRL",
+            "valor_compra": float(valor),
+            "valor_venda": float(valor),
+            "timestamp": f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (via CoinGecko)"
+        }
