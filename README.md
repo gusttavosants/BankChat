@@ -13,155 +13,68 @@
 
 ---
 
-## Visão Geral
-
+## 1. Visão Geral
 O **Banco Ágil** é uma plataforma de atendimento bancário baseada em **agentes de inteligência artificial especializados**. Cada agente possui um domínio de competência específico (câmbio, crédito, entrevista de crédito) e opera de forma autônoma dentro do seu escopo, sendo orquestrado por um grafo de estados (LangGraph) que classifica a intenção do cliente e direciona para o especialista adequado.
-
-A plataforma permite uma interação fluida onde o usuário pode consultar limites, solicitar aumentos e obter cotações de moedas em tempo real, tudo através de uma interface de chat premium que simula um atendimento de concierge digital.
-
-### Principais capacidades
-
-- **Multi-agente com roteamento inteligente**: Triagem automática por intenção via LangGraph, com redirecionamento transparente entre agentes especialistas.
-- **Memória de Curto e Longo Prazo**: Persistência de contexto da conversa via checkpointers do LangGraph.
-- **Cálculo de Score Dinâmico**: Algoritmo que processa dados financeiros coletados durante a entrevista para atualizar o perfil de crédito no Supabase.
-- **LLM Gateway Multi-provider**: Suporte configurável para Groq, Google Gemini, OpenAI e OpenRouter (MiniMax).
-- **Interface Premium**: Aplicação moderna em React com Shadcn/UI e animações fluidas.
 
 ---
 
-## Arquitetura do Sistema
+## 2. Arquitetura do Sistema
+A arquitetura é baseada no padrão **Multi-Agent Orchestration** utilizando o framework **LangGraph**.
 
-### Visão Geral da Arquitetura
+### Agentes e Fluxos
+- **Triagem (`triagem`)**: Ponto de entrada. Responsável pela autenticação do cliente e roteamento inicial.
+- **Crédito (`credito`)**: Especialista em limites. Consulta dados financeiros e processa pedidos de aumento.
+- **Entrevista (`entrevista`)**: Consultor para análise profunda. Coleta dados (renda, emprego, dívidas) para recalcular o score.
+- **Câmbio (`cambio`)**: Consultor de moedas estrangeiras com cotações em tempo real.
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/4deb58e7-9fce-40d0-be78-9bc505c40eeb" alt="Arquitetura Banco Ágil" width="100%"/>
-</p>
-
-### Fluxo de Agentes
+### Manipulação de Dados
+Os dados fluem através de um **Estado Global** (`BancoAgilState`) que persiste o histórico de mensagens, informações do cliente autenticado e o agente ativo. A persistência em produção utiliza o **Supabase** (PostgreSQL) para garantir integridade e escalabilidade.
 
 <p align="center">
   <img src="docs/assets/flow.svg" alt="Arquitetura Multi-Agente" width="100%"/>
 </p>
 
-| Agente | Slug | Responsabilidade | Ferramentas |
-|---|---|---|---|
-| **Triagem** | `triagem` | Boas-vindas e Autenticação. Valida o cliente e direciona para o serviço solicitado. | `validar_cpf`, `verificar_nascimento` |
-| **Crédito** | `credito` | Consulta limites atuais e processa pedidos de aumento imediato. | `consultar_limite`, `solicitar_aumento` |
-| **Entrevista** | `entrevista` | Conduz entrevista estruturada para coleta de dados financeiros e atualização de score. | `coletar_dados`, `atualizar_score` |
-| **Câmbio** | `cambio` | Consulta cotações de moedas (USD, EUR, BTC) em tempo real via API externa. | `consultar_cotacao` |
+---
 
-### Fluxo de Decisão (Graph)
-
-```mermaid
-graph TD
-    User((Usuário)) --> T[Agente de Triagem]
-    T -- Sucesso Auth --> R{Roteador de Intenção}
-    R --> C[Agente de Crédito]
-    R --> E[Agente de Entrevista]
-    R --> X[Agente de Câmbio]
-    
-    C -- Necessita Info --> E
-    E -- Score Atualizado --> C
-    X -- Nova Consulta --> R
-    
-    subgraph "Camada de Inteligência (LangGraph)"
-    T
-    R
-    C
-    E
-    X
-    end
-```
-
+## 3. Funcionalidades Implementadas
+- **Autenticação em Duas Etapas**: Validação de CPF e data de nascimento com limite de tentativas.
+- **Roteamento Dinâmico**: Transição entre especialistas baseada em intenção natural (NLP).
+- **Cálculo de Score em Tempo Real**: Algoritmo que processa variáveis socioeconômicas para atualização imediata.
+- **Cotação Multi-moedas**: Integração com APIs externas para USD, EUR, GBP e BTC.
+- **Interface Premium**: Dashboard de chat responsivo com feedback visual de processamento.
 
 ---
 
-## Funcionalidades Implementadas
-
-### Motor de Conversação (Agent Runtime)
-- **Orquestração LangGraph**: Grafo de estados cíclico que gerencia transições e estados de forma robusta.
-- **Tool Calling Nativo**: Integração direta entre o LLM e as funções de negócio (services).
-- **Handoff Transparente**: O sistema troca o agente ativo na conversa mantendo o histórico completo.
-- **Streaming SSE**: Respostas token-a-token no frontend para redução da latência percebida.
-- **Sistema de Checkpoints**: Capacidade de retomar conversas de onde pararam.
-
-### Interface do Usuário (Frontend)
-- **Chat Estilo Concierge**: Design minimalista focado em experiência premium.
-- **Feedback de Digitação**: Indicadores visuais de que o agente está processando a informação.
-- **Validação de Formulários**: Input de CPF e datas com validação em tempo real via Zod.
-- **Responsividade Total**: Interface otimizada para mobile e desktop.
-
-### Infraestrutura e Persistência
-- **Supabase Cloud**: Banco de dados relacional para persistência de clientes, solicitações e score.
-- **FastAPI (Python)**: API robusta com suporte assíncrono para streaming.
-- **Vite + React (TS)**: Frontend performático e tipado.
+## 4. Escolhas Técnicas e Justificativas
+- **LangGraph**: Escolhido pela capacidade de criar grafos cíclicos, permitindo que o cliente volte ao menu ou mude de assunto a qualquer momento sem perder o contexto.
+- **FastAPI**: Utilizado no backend pela performance superior e suporte nativo a streaming SSE (Server-Sent Events), essencial para chats de IA.
+- **Supabase**: Proporciona um backend-as-a-service completo com autenticação e banco de dados relacional robusto.
+- **React + Tailwind**: Para uma interface de usuário rápida, tipada e com design premium altamente customizável.
 
 ---
 
-## Tutorial de Execução e Testes
+## 5. Desafios Enfrentados e Resoluções
+- **Context Window e Latência**: Conversas longas (especialmente em entrevistas) degradavam a performance. **Resolução**: Implementação de uma camada de gerenciamento de contexto (`trim_messages`) que mantém apenas as mensagens essenciais para a LLM.
+- **Hallucinações de Handoff**: Os agentes às vezes inventavam serviços ao trocar de contexto. **Resolução**: Implementação de "Regras de Ouro" globais e gatilhos técnicos (`SystemMessages`) que forçam o comportamento estrito de cada especialista no momento da transição.
+- **Estabilidade da API**: Erros 502/504 em provedores de LLM. **Resolução**: Implementação de tratamento de exceções no frontend para exibir mensagens amigáveis e permitir o reenvio da mensagem.
+
+---
+
+## 6. Tutorial de Execução e Testes
 
 ### Pré-requisitos
-- Python 3.10+
-- Node.js 18+
-- Chave de API de um provedor (Groq, OpenRouter ou Google)
+- Python 3.10+ | Node.js 18+ | Chave de API (OpenRouter, Groq ou Google)
 
-### 1. Instalação
-
-```bash
-# Clone o repositório
-git clone https://github.com/gusttavosants/BankChat.git
-cd BankChat
-
-# Setup Backend
-cd backend
-python -m venv .venv
-source .venv/bin/activate # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-# Setup Frontend
-cd ../frontend
-npm install
-```
-
-### 2. Configuração do `.env`
-
-Crie o arquivo `backend/.env` com as chaves necessárias (veja `render_env_config.md` para detalhes).
-
-### 3. Execução
-
-**Terminal 1 (Backend - API):**
-```bash
-cd backend
-uvicorn api.main:app --reload --port 8000
-```
-
-**Terminal 2 (Frontend - Web):**
-```bash
-cd frontend
-npm run dev
-```
-
----
-
-## Estrutura do Repositório
-
-```text
-banco-agil/
-├── backend/                # API e Lógica de Agentes
-│   ├── agents/             # Definição dos agentes LangGraph
-│   ├── api/                # Servidor FastAPI (main.py)
-│   ├── core/               # Orquestração, Configuração e DB (Supabase)
-│   ├── repositories/       # Camada de acesso a dados
-│   ├── services/           # Regras de Negócio e APIs externas
-│   └── scripts/            # Scripts de migração e utilitários
-├── frontend/               # Aplicação Web (Vite + React)
-│   ├── src/
-│   │   ├── components/     # UI Components e Lógica de Chat
-│   │   ├── hooks/          # Hooks de API e Estado
-│   │   └── pages/          # Layouts Principais
-│   └── package.json
-└── README.md
-```
+### Passo a Passo
+1. **Clonar e Instalar**:
+   ```bash
+   git clone https://github.com/gusttavosants/BankChat.git
+   cd BankChat/backend && pip install -r requirements.txt
+   cd ../frontend && npm install
+   ```
+2. **Configurar .env**: Crie o arquivo em `backend/.env` com as chaves necessárias.
+3. **Rodar o Backend**: `uvicorn api.main:app --reload`
+4. **Rodar o Frontend**: `npm run dev`
 
 ---
 *Desenvolvido por Gustavo Santos como parte do projeto Banco Ágil.*
