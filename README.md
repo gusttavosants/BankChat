@@ -57,7 +57,7 @@ Os dados fluem através de um **Estado Global** (`BancoAgilState`) que persiste 
 
 ## 5. Desafios Enfrentados e Resoluções
 - **Context Window e Latência**: Conversas longas (especialmente em entrevistas) degradavam a performance. **Resolução**: Implementação de uma camada de gerenciamento de contexto (`trim_messages`) que mantém apenas as mensagens essenciais para a LLM.
-- **Hallucinações de Handoff**: Os agentes às vezes inventavam serviços ao trocar de contexto. **Resolução**: Implementação de "Regras de Ouro" globais e gatilhos técnicos (`SystemMessages`) que forçam o comportamento estrito de cada especialista no momento da transição.
+- **Alucinações de Handoff**: Os agentes às vezes inventavam serviços ao trocar de contexto. **Resolução**: Implementação de "Regras de Ouro" globais e gatilhos técnicos (`SystemMessages`) que forçam o comportamento estrito de cada especialista no momento da transição.
 - **Estabilidade da API**: Erros 502/504 em provedores de LLM. **Resolução**: Implementação de tratamento de exceções no frontend para exibir mensagens amigáveis e permitir o reenvio da mensagem.
 
 ---
