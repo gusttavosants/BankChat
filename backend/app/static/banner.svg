@@ -1,0 +1,14 @@
+<svg width="800" height="200" viewBox="0 0 800 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="200" rx="20" fill="url(#paint0_linear)"/>
+  <defs>
+    <linearGradient id="paint0_linear" x1="0" y1="0" x2="800" y2="200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E293B"/>
+      <stop offset="1" stop-color="#334155"/>
+    </linearGradient>
+  </defs>
+  <path d="M400 50L450 80V140L400 170L350 140V80L400 50Z" stroke="#38BDF8" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M380 90H420M380 110H420M380 130H420" stroke="#38BDF8" stroke-width="3" stroke-linecap="round"/>
+  <text x="400" y="190" text-anchor="middle" fill="#F8FAFC" font-family="sans-serif" font-size="24" font-weight="bold">BANCO ÁGIL</text>
+  <circle cx="50" cy="50" r="30" fill="#38BDF8" fill-opacity="0.1"/>
+  <circle cx="750" cy="150" r="40" fill="#38BDF8" fill-opacity="0.1"/>
+</svg>

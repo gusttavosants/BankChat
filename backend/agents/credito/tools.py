@@ -35,14 +35,15 @@ def solicitar_aumento(cpf: str, novo_limite: float) -> str:
         return json.dumps({"status_code": 500})
 
 @tool
-def verificar_score_limite(score: int, limite_solicitado: float = None) -> str:
-    """Valida se o score comporta o limite solicitado."""
+def verificar_score_limite(score: int, limite_solicitado: float = None, limite_atual: float = 0.0) -> str:
+    """Valida se o score comporta o limite solicitado. Informe sempre o limite_atual do cliente se disponível."""
     try:
         valor = float(limite_solicitado) if limite_solicitado else 0.0
-        res = service.verificar_score(int(score), valor)
+        res = service.verificar_score(int(score), valor, float(limite_atual))
         return json.dumps({"status_code": 200, "data": res})
     except ScoreInsuficienteError as e:
-        limite_max = service.score_repo.get_limite_maximo(int(score))
+        teto_score = service.score_repo.get_limite_maximo(int(score))
+        limite_max = max(teto_score, float(limite_atual))
         return json.dumps({
             "status_code": 422, 
             "data": {"limite_maximo": limite_max}

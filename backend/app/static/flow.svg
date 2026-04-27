@@ -1,0 +1,39 @@
+<svg width="300" height="400" viewBox="0 0 300 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Triagem -->
+  <rect x="100" y="20" width="100" height="40" rx="8" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/>
+  <text x="150" y="45" text-anchor="middle" fill="#F8FAFC" font-family="sans-serif" font-size="12">Triagem</text>
+  
+  <!-- Arrow Down -->
+  <path d="M150 60V90" stroke="#64748B" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Choice Split -->
+  <path d="M150 90H50V120" stroke="#64748B" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <path d="M150 90H250V120" stroke="#64748B" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Câmbio -->
+  <rect x="20" y="120" width="80" height="40" rx="8" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/>
+  <text x="60" y="145" text-anchor="middle" fill="#F8FAFC" font-family="sans-serif" font-size="12">Câmbio</text>
+  
+  <!-- Crédito -->
+  <rect x="200" y="120" width="80" height="40" rx="8" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/>
+  <text x="240" y="145" text-anchor="middle" fill="#F8FAFC" font-family="sans-serif" font-size="12">Crédito</text>
+  
+  <!-- Interview path -->
+  <path d="M240 160V200" stroke="#64748B" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <rect x="200" y="200" width="80" height="40" rx="8" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+  <text x="240" y="225" text-anchor="middle" fill="#F8FAFC" font-family="sans-serif" font-size="10">Entrevista</text>
+  
+  <!-- Back to Credit -->
+  <path d="M220 240C180 260 180 180 210 160" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrowhead)"/>
+  
+  <!-- End -->
+  <path d="M150 320V360" stroke="#64748B" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <circle cx="150" cy="380" r="15" fill="#EF4444" stroke="#F8FAFC" stroke-width="2"/>
+  <text x="150" y="384" text-anchor="middle" fill="#F8FAFC" font-family="sans-serif" font-size="10">FIM</text>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748B" />
+    </marker>
+  </defs>
+</svg>

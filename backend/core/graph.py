@@ -124,10 +124,10 @@ def router(state: BancoAgilState):
              return "entrevista"
 
         # 2. CREDITO (Entrada ou Retorno)
-        # Se estamos em entrevista, só voltamos para crédito se a análise estiver "finalizada" ou tiver "novo score"
-        if any(k in last_message for k in ["crédito", "credito", "limite"]) and agente_atual != "credito":
+        if any(k in last_message for k in ["crédito", "credito", "limite", "redirecionar", "redirecionado"]) and agente_atual != "credito":
             if agente_atual == "entrevista":
-                if any(k in last_message for k in ["novo score", "concluído", "concluido", "finalizado", "resultado"]):
+                analysis_done = state.get("analise_realizada") or any(k in last_message for k in ["novo score", "concluído", "concluido", "finalizado", "resultado", "redirecionar", "redirecionado"])
+                if analysis_done:
                     return "credito"
                 else:
                     return "entrevista"
@@ -138,17 +138,12 @@ def router(state: BancoAgilState):
         if any(k in last_message for k in ["câmbio", "cambio", "moeda", "cotação"]) and agente_atual != "cambio":
             return "cambio"
 
-        if any(k in last_message for k in ["triagem", "início", "ajudar com câmbio ou crédito"]) and agente_atual != "triagem":
+        if any(k in last_message for k in ["voltar para a triagem", "menu inicial", "voltar ao início"]) and agente_atual != "triagem":
             return "triagem"
         
-        # Se não houve transferência e a IA fez uma pergunta, paramos
-        if "?" in last_message:
-            return END
-            
         return END
 
-    pass
-    return agente_atual
+    return END
 
 # Constrói o grafo
 workflow = StateGraph(BancoAgilState)

@@ -4,29 +4,22 @@ from agents.entrevista.tools import calcular_score, atualizar_score
 from agents.credito.tools import consultar_limite, solicitar_aumento, verificar_score_limite
 from agents.shared.encerramento import encerrar_atendimento
 from core.state import BancoAgilState
+from core.prompts import apply_global_rules
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
 from utils.formatters import clean_llm_response
 
-system_prompt = (
-    "Você é o consultor financeiro do Banco Ágil. Seu papel agora é conduzir uma análise para recalcular o score de crédito do cliente.\n\n"
-    "Princípios de atendimento:\n"
-    "- Mantenha a continuidade da conversa; para o cliente, você é o mesmo assistente único que já o estava atendendo.\n"
-    "- Inicie explicando que coletará dados para recalcular o score, e imediatamente faça a PRIMEIRA pergunta.\n"
-    "- Solicite as seguintes informações, estritamente UMA POR VEZ e EXATAMENTE nesta ordem: 1. Renda mensal bruta, 2. Tipo de emprego (formal/CLT, autônomo ou desempregado), 3. Despesas fixas mensais, 4. Número de dependentes e 5. Se possui dívidas ativas.\n"
-    "- ATENÇÃO MÁXIMA: A sua primeiríssima pergunta DEVE ser sobre a Renda Mensal Bruta. Nunca pule etapas nem pergunte duas coisas de uma vez.\n\n"
-    "Fluxo de processamento:\n"
-    "- Após coletar todos os dados, use a ferramenta 'calcular_score'.\n"
-    "- Observe o 'limite_sugerido' retornado e compare com o limite atual do cliente.\n"
-    "- SE o limite sugerido for MAIOR que o limite atual: Informe o novo score e o limite sugerido, e PERGUNTE se ele deseja solicitar esse aumento.\n"
-    "- SE ele ACEITAR: Use 'atualizar_score' e também use 'solicitar_aumento' com o valor sugerido. Confirme o sucesso e avise que será redirecionado para as opções de crédito.\n"
-    "- SE o limite sugerido for MENOR OU IGUAL ao limite atual: Informe o novo score, use 'atualizar_score', e diga expressamente que 'não é possível aumentar o limite mesmo com a análise financeira'. Avise do redirecionamento.\n"
-    "- IMPORTANTE: NÃO utilize a ferramenta 'encerrar_atendimento' neste momento normal de fluxo.\n"
-    "- A ferramenta 'encerrar_atendimento' só deve ser utilizada SE, E SOMENTE SE, o cliente solicitar explicitamente o encerramento da conversa (ex: 'quero sair', 'encerrar atendimento', 'tchau').\n\n"
-    "Observações:\n"
-    "- Não informe valores fictícios; use sempre o retorno das ferramentas.\n"
-    "- Formate todos os valores monetários no padrão R$ X.XXX,XX.\n"
-    "- NUNCA use emojis, asteriscos, underscores ou qualquer marcação markdown nas suas respostas. Use somente texto puro.\n"
-    "- Responda SEMPRE e EXCLUSIVAMENTE em português do Brasil. NUNCA utilize palavras em inglês (ex: 'possibly', 'maybe')."
+system_prompt = apply_global_rules(
+    "Você é o consultor financeiro do Banco Ágil. Seu papel é coletar dados para recalcular o score de crédito.\n\n"
+    "ORDEM DAS PERGUNTAS (Estritamente uma por vez):\n"
+    "1. Renda mensal bruta\n"
+    "2. Tipo de emprego (formal/CLT, autônomo ou desempregado)\n"
+    "3. Despesas fixas mensais\n"
+    "4. Número de dependentes\n"
+    "5. Se possui dívidas ativas\n\n"
+    "REGRAS DE OURO:\n"
+    "- Se esta for a sua PRIMEIRA resposta na análise, sua saída deve ser EXATAMENTE: 'Para iniciarmos a análise, qual é a sua renda mensal bruta?'\n"
+    "- Nunca pergunte duas coisas ao mesmo tempo. Responda apenas uma pergunta por vez.\n"
+    "- Use a ferramenta 'calcular_score' somente após coletar TODOS os dados solicitados acima."
 )
 
 tools = [calcular_score, atualizar_score, solicitar_aumento, encerrar_atendimento]
@@ -37,7 +30,7 @@ def agente_entrevista_node(state: BancoAgilState):
     transferencia = state.get("agente_atual") != "entrevista"
     
     if transferencia:
-        prompt_transferencia = "Você acaba de assumir este atendimento no contexto de ENTREVISTA FINANCEIRA. Explique rapidamente que coletará dados para recalcular o score e IMEDIATAMENTE pergunte qual a Renda Mensal Bruta do cliente. IMPORTANTE: Não se apresente novamente nem dê boas-vindas."
+        prompt_transferencia = "Você acaba de assumir este atendimento para realizar uma ANÁLISE FINANCEIRA (ENTREVISTA). Siga as instruções de coleta de dados do seu prompt de sistema. IMPORTANTE: Não se apresente novamente nem dê boas-vindas."
         
         # Injeta contexto de autenticação se disponível
         if state.get("cliente_autenticado"):
@@ -50,7 +43,7 @@ def agente_entrevista_node(state: BancoAgilState):
         # Injeta system + mensagem gatilho para forçar apresentação imediata
         messages = messages + [
             SystemMessage(content=prompt_transferencia),
-            HumanMessage(content="[TRANSFERÊNCIA RECEBIDA]", name="system"),
+            HumanMessage(content="Inicie a coleta de dados."),
         ]
     
     response = agent.invoke({"messages": messages})
@@ -103,7 +96,7 @@ def agente_entrevista_node(state: BancoAgilState):
     # Remove a mensagem gatilho do retorno para não poluir o histórico da UI
     if transferencia:
         new_messages = [m for m in new_messages if not (
-            isinstance(m, HumanMessage) and m.content == "[TRANSFERÊNCIA RECEBIDA]"
+            isinstance(m, HumanMessage) and m.content == "Inicie a coleta de dados."
         )]
             
     # Captura se a análise foi concluída com sucesso para evitar loops infinitos
