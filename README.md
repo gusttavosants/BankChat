@@ -21,6 +21,11 @@ O **Banco Ágil** é uma plataforma de atendimento bancário baseada em **agente
 ## 2. Arquitetura do Sistema
 A arquitetura é baseada no padrão **Multi-Agent Orchestration** utilizando o framework **LangGraph**.
 
+### Visão Geral da Arquitetura
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4deb58e7-9fce-40d0-be78-9bc505c40eeb" alt="Arquitetura Banco Ágil" width="100%"/>
+</p>
+
 ### Agentes e Fluxos
 - **Triagem (`triagem`)**: Ponto de entrada. Responsável pela autenticação do cliente e roteamento inicial.
 - **Crédito (`credito`)**: Especialista em limites. Consulta dados financeiros e processa pedidos de aumento.
@@ -29,6 +34,26 @@ A arquitetura é baseada no padrão **Multi-Agent Orchestration** utilizando o f
 
 ### Manipulação de Dados
 Os dados fluem através de um **Estado Global** (`BancoAgilState`) que persiste o histórico de mensagens, informações do cliente autenticado e o agente ativo. A persistência em produção utiliza o **Supabase** (PostgreSQL) para garantir integridade e escalabilidade.
+
+#### Modelo de Dados (Relacional)
+```mermaid
+erDiagram
+    CLIENTE {
+        string cpf PK
+        string nome
+        string data_nascimento
+        float score
+        float limite_atual
+    }
+    SOLICITACAO {
+        string id PK
+        string cpf FK
+        string tipo
+        string status
+        datetime data
+    }
+    CLIENTE ||--o{ SOLICITACAO : "possui"
+```
 
 <p align="center">
   <img src="docs/assets/flow.svg" alt="Arquitetura Multi-Agente" width="100%"/>
