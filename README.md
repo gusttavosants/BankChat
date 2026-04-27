@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.png" alt="Banco Ágil — Plataforma de Agentes Inteligentes" width="100%"/>
+  <img src="docs/assets/banner.svg" alt="Banco Ágil — Plataforma de Agentes Inteligentes" width="100%"/>
 </p>
 
 <p align="center">
@@ -40,7 +40,7 @@ A plataforma permite uma interação fluida onde o usuário pode consultar limit
 ### Fluxo de Agentes
 
 <p align="center">
-  <img src="docs/assets/agents_flow.png" alt="Arquitetura Multi-Agente" width="100%"/>
+  <img src="docs/assets/flow.svg" alt="Arquitetura Multi-Agente" width="100%"/>
 </p>
 
 | Agente | Slug | Responsabilidade | Ferramentas |
