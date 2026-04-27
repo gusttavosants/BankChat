@@ -1,167 +1,80 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="Banco Ágil — Plataforma de Agentes Inteligentes" width="100%"/>
+  <img src="docs/assets/banner.svg" alt="Banco Ágil Streamlit — Plataforma de Agentes Inteligentes" width="100%"/>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white" alt="Vite"/>
-  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black" alt="React"/>
-  <img src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white" alt="FastAPI"/>
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python"/>
+  <img src="https://img.shields.io/badge/Streamlit-1.32-FF4B4B?logo=streamlit&logoColor=white" alt="Streamlit"/>
   <img src="https://img.shields.io/badge/LangGraph-Latest-orange" alt="LangGraph"/>
-  <img src="https://img.shields.io/badge/Supabase-Database-3ECF8E?logo=supabase&logoColor=white" alt="Supabase"/>
+  <img src="https://img.shields.io/badge/Pandas-Latest-150458?logo=pandas&logoColor=white" alt="Pandas"/>
 </p>
 
 ---
 
-## Visão Geral
-
-O **Banco Ágil** é uma plataforma de atendimento bancário baseada em **agentes de inteligência artificial especializados**. Cada agente possui um domínio de competência específico (câmbio, crédito, entrevista de crédito) e opera de forma autônoma dentro do seu escopo, sendo orquestrado por um grafo de estados (LangGraph) que classifica a intenção do cliente e direciona para o especialista adequado.
-
-A plataforma permite uma interação fluida onde o usuário pode consultar limites, solicitar aumentos e obter cotações de moedas em tempo real, tudo através de uma interface de chat premium que simula um atendimento de concierge digital.
-
-### Principais capacidades
-
-- **Multi-agente com roteamento inteligente**: Triagem automática por intenção via LangGraph, com redirecionamento transparente entre agentes especialistas.
-- **Memória de Curto e Longo Prazo**: Persistência de contexto da conversa via checkpointers do LangGraph.
-- **Cálculo de Score Dinâmico**: Algoritmo que processa dados financeiros coletados durante a entrevista para atualizar o perfil de crédito no Supabase.
-- **LLM Gateway Multi-provider**: Suporte configurável para Groq, Google Gemini, OpenAI e OpenRouter (MiniMax).
-- **Interface Premium**: Aplicação moderna em React com Shadcn/UI e animações fluidas.
+## 1. Visão Geral (Versão Streamlit)
+Esta é a versão de **Prototipagem Ágil** do Banco Ágil. Desenvolvida em **Streamlit**, esta versão foca na validação rápida da lógica dos agentes, testes de fluxo e experimentação de prompts, utilizando uma infraestrutura simplificada baseada em arquivos locais.
 
 ---
 
-## Arquitetura do Sistema
+## 2. Arquitetura do Sistema
+A inteligência do sistema reside no `backend/`, utilizando **LangGraph** para orquestrar agentes especialistas.
 
-### Visão Geral da Arquitetura
+### Agentes e Fluxos
+- **Triagem**: Gerencia a autenticação e boas-vindas.
+- **Especialistas (Crédito, Câmbio, Entrevista)**: Nós do grafo que assumem a conversa conforme a intenção detectada.
+- **Roteador Dinâmico**: Lógica de transição que decide o próximo nó com base na resposta da LLM.
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/4deb58e7-9fce-40d0-be78-9bc505c40eeb" alt="Arquitetura Banco Ágil" width="100%"/>
-</p>
-
-### Fluxo de Agentes
+### Manipulação de Dados
+Nesta versão, a persistência é feita via **Pandas** em arquivos **CSV** localizados em `backend/data/`. Isso permite auditoria imediata e execução sem dependência de bancos de dados em nuvem durante o desenvolvimento.
 
 <p align="center">
   <img src="docs/assets/flow.svg" alt="Arquitetura Multi-Agente" width="100%"/>
 </p>
 
-| Agente | Slug | Responsabilidade | Ferramentas |
-|---|---|---|---|
-| **Triagem** | `triagem` | Boas-vindas e Autenticação. Valida o cliente e direciona para o serviço solicitado. | `validar_cpf`, `verificar_nascimento` |
-| **Crédito** | `credito` | Consulta limites atuais e processa pedidos de aumento imediato. | `consultar_limite`, `solicitar_aumento` |
-| **Entrevista** | `entrevista` | Conduz entrevista estruturada para coleta de dados financeiros e atualização de score. | `coletar_dados`, `atualizar_score` |
-| **Câmbio** | `cambio` | Consulta cotações de moedas (USD, EUR, BTC) em tempo real via API externa. | `consultar_cotacao` |
+---
 
-### Fluxo de Decisão (Graph)
-
-```mermaid
-graph TD
-    User((Usuário)) --> T[Agente de Triagem]
-    T -- Sucesso Auth --> R{Roteador de Intenção}
-    R --> C[Agente de Crédito]
-    R --> E[Agente de Entrevista]
-    R --> X[Agente de Câmbio]
-    
-    C -- Necessita Info --> E
-    E -- Score Atualizado --> C
-    X -- Nova Consulta --> R
-    
-    subgraph "Camada de Inteligência (LangGraph)"
-    T
-    R
-    C
-    E
-    X
-    end
-```
-
+## 3. Funcionalidades Implementadas
+- **Interface de Chat Funcional**: Chat interativo completo via Streamlit.
+- **Mapa de Fluxo Visual**: Visualização do diagrama de agentes diretamente na barra lateral.
+- **Simulação de Autenticação**: Validação de dados contra registros em CSV.
+- **Lógica de Especialistas Completa**: Câmbio, Limites e Análise Financeira 100% operacionais.
+- **Tratamento de Erros Resiliente**: Gestão de instabilidades de rede e timeouts.
 
 ---
 
-## Funcionalidades Implementadas
-
-### Motor de Conversação (Agent Runtime)
-- **Orquestração LangGraph**: Grafo de estados cíclico que gerencia transições e estados de forma robusta.
-- **Tool Calling Nativo**: Integração direta entre o LLM e as funções de negócio (services).
-- **Handoff Transparente**: O sistema troca o agente ativo na conversa mantendo o histórico completo.
-- **Streaming SSE**: Respostas token-a-token no frontend para redução da latência percebida.
-- **Sistema de Checkpoints**: Capacidade de retomar conversas de onde pararam.
-
-### Interface do Usuário (Frontend)
-- **Chat Estilo Concierge**: Design minimalista focado em experiência premium.
-- **Feedback de Digitação**: Indicadores visuais de que o agente está processando a informação.
-- **Validação de Formulários**: Input de CPF e datas com validação em tempo real via Zod.
-- **Responsividade Total**: Interface otimizada para mobile e desktop.
-
-### Infraestrutura e Persistência
-- **Supabase Cloud**: Banco de dados relacional para persistência de clientes, solicitações e score.
-- **FastAPI (Python)**: API robusta com suporte assíncrono para streaming.
-- **Vite + React (TS)**: Frontend performático e tipado.
+## 4. Escolhas Técnicas e Justificativas
+- **Streamlit**: Escolhido pela velocidade de desenvolvimento. Permite transformar scripts Python em aplicações web em minutos, ideal para validar fluxos de IA.
+- **CSV/Pandas**: Justifica-se pela facilidade de teste "zero-config". Não requer setup de Docker ou Cloud para validar a lógica de negócios.
+- **Modularização por Agentes**: Cada agente possui seu próprio diretório, facilitando a manutenção e a troca de prompts específicos.
 
 ---
 
-## Tutorial de Execução e Testes
+## 5. Desafios Enfrentados e Resoluções
+- **Feedback Visual de Transição**: No Streamlit, a troca de agentes era invisível para o usuário. **Resolução**: Implementação de nomes de agentes nas mensagens e um indicador de "Agente Atual" na barra lateral.
+- **Loop de Menus**: Repetições de menus ao trocar de contexto. **Resolução**: Refatoração do roteador (`router`) para encerrar o turno (`END`) imediatamente após a resposta do especialista.
+- **Depreciações de UI**: Mudanças na API do Streamlit afetando o layout. **Resolução**: Migração de parâmetros de largura de imagem para os padrões mais recentes.
+
+---
+
+## 6. Tutorial de Execução e Testes
 
 ### Pré-requisitos
 - Python 3.10+
-- Node.js 18+
-- Chave de API de um provedor (Groq, OpenRouter ou Google)
+- Chave de API (OpenRouter, Groq ou Google) no arquivo `.env`
 
-### 1. Instalação
-
-```bash
-# Clone o repositório
-git clone https://github.com/gusttavosants/BankChat.git
-cd BankChat
-
-# Setup Backend
-cd backend
-python -m venv .venv
-source .venv/bin/activate # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-# Setup Frontend
-cd ../frontend
-npm install
-```
-
-### 2. Configuração do `.env`
-
-Crie o arquivo `backend/.env` com as chaves necessárias (veja `render_env_config.md` para detalhes).
-
-### 3. Execução
-
-**Terminal 1 (Backend - API):**
-```bash
-cd backend
-uvicorn api.main:app --reload --port 8000
-```
-
-**Terminal 2 (Frontend - Web):**
-```bash
-cd frontend
-npm run dev
-```
+### Passo a Passo
+1. **Instalação**:
+   ```bash
+   cd backend
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+2. **Execução**:
+   ```bash
+   streamlit run app/streamlit_app.py
+   ```
+3. **Testes**: Use os CPFs presentes em `backend/data/clientes.csv` para testar a autenticação e os diferentes fluxos de crédito e câmbio.
 
 ---
-
-## Estrutura do Repositório
-
-```text
-banco-agil/
-├── backend/                # API e Lógica de Agentes
-│   ├── agents/             # Definição dos agentes LangGraph
-│   ├── api/                # Servidor FastAPI (main.py)
-│   ├── core/               # Orquestração, Configuração e DB (Supabase)
-│   ├── repositories/       # Camada de acesso a dados
-│   ├── services/           # Regras de Negócio e APIs externas
-│   └── scripts/            # Scripts de migração e utilitários
-├── frontend/               # Aplicação Web (Vite + React)
-│   ├── src/
-│   │   ├── components/     # UI Components e Lógica de Chat
-│   │   ├── hooks/          # Hooks de API e Estado
-│   │   └── pages/          # Layouts Principais
-│   └── package.json
-└── README.md
-```
-
----
-*Desenvolvido por Gustavo Santos como parte do projeto Banco Ágil.*
+*Desenvolvido por Gustavo Santos como parte do protótipo Banco Ágil (Versão Streamlit).*
