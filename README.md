@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="/home/gustvo/.gemini/antigravity/brain/976c4f5d-d993-4abe-b3f4-82ced2b54b36/bankchat_streamlit_banner_1777207561483.png" alt="Banco Ágil Streamlit — Plataforma de Agentes Inteligentes" width="100%"/>
+  <img src="docs/assets/banner_streamlit.png" alt="Banco Ágil Streamlit — Plataforma de Agentes Inteligentes" width="100%"/>
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ Cada agente possui um domínio de competência específico (câmbio, crédito, e
 ### Fluxo de Agentes
 
 <p align="center">
-  <img src="docs/assets/architecture-agents.svg" alt="Arquitetura Multi-Agente" width="100%"/>
+  <img src="docs/assets/banner_main.png" alt="Arquitetura Multi-Agente" width="100%"/>
 </p>
 
 | Agente | Slug | Responsabilidade | Ferramentas |
