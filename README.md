@@ -14,28 +14,42 @@
 ---
 
 ## 1. Visão Geral
-O **Banco Ágil** é uma plataforma de atendimento bancário baseada em **agentes de inteligência artificial especializados**. Cada agente possui um domínio de competência específico (câmbio, crédito, entrevista de crédito) e opera de forma autônoma dentro do seu escopo, sendo orquestrado por um grafo de estados (LangGraph) que classifica a intenção do cliente e direciona para o especialista adequado.
+O **Banco Ágil** redefine a experiência de autoatendimento bancário através de uma **Arquitetura Multi-Agente**. Ao contrário de chatbots tradicionais baseados em árvores de decisão rígidas ou palavras-chave, este sistema utiliza agentes de IA com raciocínio autônomo (ReAct) que operam sob um grafo de estados orquestrado pelo **LangGraph**.
+
+Cada agente é um especialista em seu domínio (Câmbio, Crédito, Entrevista), capaz de processar intenções complexas e executar ferramentas (tools) para resolver problemas reais do cliente em tempo real.
 
 ---
 
-## 2. Arquitetura do Sistema
-A arquitetura é baseada no padrão **Multi-Agent Orchestration** utilizando o framework **LangGraph**.
+## 2. Arquitetura de Agentes (The Brain)
+A escolha da stack foi guiada pela necessidade de **comportamento dinâmico e memória persistente**.
 
 ### Visão Geral da Arquitetura
 <p align="center">
   <img src="https://github.com/user-attachments/assets/4deb58e7-9fce-40d0-be78-9bc505c40eeb" alt="Arquitetura Banco Ágil" width="100%"/>
 </p>
 
-### Agentes e Fluxos
-- **Triagem (`triagem`)**: Ponto de entrada. Responsável pela autenticação do cliente e roteamento inicial.
-- **Crédito (`credito`)**: Especialista em limites. Consulta dados financeiros e processa pedidos de aumento.
-- **Entrevista (`entrevista`)**: Consultor para análise profunda. Coleta dados (renda, emprego, dívidas) para recalcular o score.
-- **Câmbio (`cambio`)**: Consultor de moedas estrangeiras com cotações em tempo real.
+### Por que LangGraph?
+Em fluxos bancários, o cliente raramente segue uma linha reta. Ele pode perguntar sobre o dólar enquanto faz um pedido de crédito. O LangGraph nos permite criar **grafos cíclicos**, onde os agentes podem transferir o controle entre si ou retornar ao menu principal sem perder o contexto da sessão (State Management), algo que seria impossível com cadeias lineares simples (DAGs).
 
-### Manipulação de Dados
-Os dados fluem através de um **Estado Global** (`BancoAgilState`) que persiste o histórico de mensagens, informações do cliente autenticado e o agente ativo. A persistência em produção utiliza o **Supabase** (PostgreSQL) para garantir integridade e escalabilidade.
+### O Padrão ReAct (Reasoning + Acting)
+Nossos agentes não apenas respondem texto; eles **agem**.
+1. **Reasoning**: O agente analisa a fala do usuário e decide se precisa de informações adicionais ou se deve usar uma ferramenta.
+2. **Acting**: Ele chama ferramentas como `consultar_limite` ou `atualizar_score` de forma autônoma.
+3. **Observation**: O agente lê o resultado da ferramenta e formula uma resposta natural para o cliente.
 
-#### Modelo de Dados (Relacional)
+<p align="center">
+  <img src="docs/assets/flow.svg" alt="Arquitetura Multi-Agente" width="100%"/>
+</p>
+
+---
+
+## 3. Fluxo de Especialistas
+- **Triagem (`triagem`)**: Gerencia o protocolo de segurança (autenticação MFA) e atua como o roteador inteligente do sistema.
+- **Crédito (`credito`)**: Possui permissão para consultar o motor de crédito e solicitar aumentos de limite.
+- **Entrevista de Crédito (`entrevista`)**: Um agente consultivo que realiza uma análise profunda do perfil socioeconômico para recalcular o score.
+- **Câmbio (`cambio`)**: Especialista em moedas, integrado a cotações em tempo real.
+
+### Modelo de Dados (Relacional)
 ```mermaid
 erDiagram
     CLIENTE {
@@ -55,53 +69,31 @@ erDiagram
     CLIENTE ||--o{ SOLICITACAO : "possui"
 ```
 
-<p align="center">
-  <img src="docs/assets/flow.svg" alt="Arquitetura Multi-Agente" width="100%"/>
-</p>
-
----
-
-## 3. Funcionalidades Implementadas
-- **Autenticação em Duas Etapas**: Validação de CPF e data de nascimento com limite de tentativas.
-- **Roteamento Dinâmico**: Transição entre especialistas baseada em intenção natural (NLP).
-- **Cálculo de Score em Tempo Real**: Algoritmo que processa variáveis socioeconômicas para atualização imediata.
-- **LLM Gateway Multi-provider**: Suporte configurável para Groq, Google Gemini, OpenAI e OpenRouter (MiniMax).
-- **Comportamento Determinístico**: Configuração estrita de `temperature=0.0` em todos os provedores para garantir respostas consistentes, previsíveis e eliminar alucinações em fluxos críticos de crédito.
-- **Cotação Multi-moedas**: Integração com APIs externas para USD, EUR, GBP e BTC.
-- **Interface Premium**: Dashboard de chat responsivo com feedback visual de processamento.
-
 ---
 
 ## 4. Escolhas Técnicas e Justificativas
-- **LangGraph**: Escolhido pela capacidade de criar grafos cíclicos, permitindo que o cliente volte ao menu ou mude de assunto a qualquer momento sem perder o contexto.
-- **FastAPI**: Utilizado no backend pela performance superior e suporte nativo a streaming SSE (Server-Sent Events), essencial para chats de IA.
-- **Supabase**: Proporciona um backend-as-a-service completo com autenticação e banco de dados relacional robusto.
-- **React + Tailwind**: Para uma interface de usuário rápida, tipada e com design premium altamente customizável.
+- **FastAPI (Streaming SSE)**: Para garantir que a resposta da IA pareça fluída, utilizamos streaming de eventos. Isso reduz a percepção de latência, entregando a resposta palavra por palavra.
+- **Supabase**: Escolhido para ser a "fonte da verdade" (Source of Truth). Ele armazena não apenas os perfis, mas também o estado persistente das conversas, permitindo auditoria e continuidade.
+- **Temperature Control (0.0)**: Priorizamos a **confiabilidade**. Todos os modelos são configurados com temperatura zero para eliminar alucinações em cálculos financeiros e garantir que as regras de crédito sejam seguidas à risca.
 
 ---
 
-## 5. Desafios Enfrentados e Resoluções
-- **Context Window e Latência**: Conversas longas (especialmente em entrevistas) degradavam a performance. **Resolução**: Implementação de uma camada de gerenciamento de contexto (`trim_messages`) que mantém apenas as mensagens essenciais para a LLM.
-- **Alucinações de Handoff**: Os agentes às vezes inventavam serviços ao trocar de contexto. **Resolução**: Implementação de "Regras de Ouro" globais e gatilhos técnicos (`SystemMessages`) que forçam o comportamento estrito de cada especialista no momento da transição.
-- **Estabilidade da API**: Erros 502/504 em provedores de LLM. **Resolução**: Implementação de tratamento de exceções no frontend para exibir mensagens amigáveis e permitir o reenvio da mensagem.
+## 5. Desafios de Engenharia e Soluções
+- **Gestão de Contexto Dinâmico**: Conversas longas podem estourar a janela de contexto. Desenvolvemos um mecanismo de `trim_messages` que condensa o histórico, mantendo apenas o essencial para a tomada de decisão.
+- **Resiliência de Identidade**: Resolvemos o desafio da perda de contexto do CPF através da injeção dinâmica de metadados em cada turno de conversação, garantindo que o agente nunca "esqueça" com quem está falando, mesmo após longas entrevistas.
 
 ---
 
-## 6. Tutorial de Execução e Testes
+## 6. Como Executar
 
-### Pré-requisitos
-- Python 3.10+ | Node.js 18+ | Chave de API (OpenRouter, Groq ou Google)
+### Backend
+1. Instale as dependências: `pip install -r requirements.txt`
+2. Configure o `.env` com suas chaves (OpenRouter, Gemini ou OpenAI).
+3. Inicie o servidor: `uvicorn api.main:app --reload`
 
-### Passo a Passo
-1. **Clonar e Instalar**:
-   ```bash
-   git clone https://github.com/gusttavosants/BankChat.git
-   cd BankChat/backend && pip install -r requirements.txt
-   cd ../frontend && npm install
-   ```
-2. **Configurar .env**: Crie o arquivo em `backend/.env` com as chaves necessárias.
-3. **Rodar o Backend**: `uvicorn api.main:app --reload`
-4. **Rodar o Frontend**: `npm run dev`
+### Frontend
+1. Instale as dependências: `npm install`
+2. Inicie o ambiente de desenvolvimento: `npm run dev`
 
 ---
-*Desenvolvido por Gustavo Santos como parte do projeto Banco Ágil.*
+*Desenvolvido como uma prova de conceito de sistemas agenticos avançados.*

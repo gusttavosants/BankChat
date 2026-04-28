@@ -31,23 +31,26 @@ def agente_entrevista_node(state: BancoAgilState):
     messages = state["messages"]
     transferencia = state.get("agente_atual") != "entrevista"
     
+    # Consolidamos todo o contexto dinâmico em uma única mensagem de sistema para evitar confusão no LLM
+    contexto_agente = "Você acaba de assumir este atendimento para realizar uma ANÁLISE FINANCEIRA (ENTREVISTA). Siga as instruções de coleta de dados do seu prompt de sistema. IMPORTANTE: Não se apresente novamente nem dê boas-vindas."
+    
+    if state.get("cliente_autenticado"):
+        nome = state.get("dados_cliente", {}).get("nome", "Cliente")
+        cpf = state.get("cpf_cliente", "desconhecido")
+        score = state.get("dados_cliente", {}).get("score_credito", "desconhecido")
+        limite = state.get("dados_cliente", {}).get("limite_credito", "desconhecido")
+        contexto_agente += f" O cliente já está autenticado como {nome} (CPF: {cpf}, Score atual: {score}, Limite atual: {limite}). NÃO peça CPF ou dados básicos."
+
+    # Se for uma transferência, injetamos a mensagem gatilho
     if transferencia:
-        prompt_transferencia = "Você acaba de assumir este atendimento para realizar uma ANÁLISE FINANCEIRA (ENTREVISTA). Siga as instruções de coleta de dados do seu prompt de sistema. IMPORTANTE: Não se apresente novamente nem dê boas-vindas."
-        
-        # Injeta contexto de autenticação se disponível
-        if state.get("cliente_autenticado"):
-            nome = state.get("dados_cliente", {}).get("nome", "Cliente")
-            cpf = state.get("cpf_cliente", "desconhecido")
-            score = state.get("dados_cliente", {}).get("score_credito", "desconhecido")
-            limite = state.get("dados_cliente", {}).get("limite_credito", "desconhecido")
-            prompt_transferencia += f" O cliente já está autenticado como {nome} (CPF: {cpf}, Score atual: {score}, Limite atual: {limite}). NÃO peça CPF ou dados básicos."
-            
-        # Injeta system + mensagem gatilho para forçar apresentação imediata
         messages = messages + [
-            SystemMessage(content=prompt_transferencia),
+            SystemMessage(content=contexto_agente),
             HumanMessage(content="Inicie a coleta de dados."),
         ]
-    
+    else:
+        # Em turnos subsequentes, apenas reforçamos o contexto do cliente
+        messages = messages + [SystemMessage(content=contexto_agente)]
+
     # Otimiza o histórico enviado para a LLM
     trimmed_messages = trim_messages(messages, last_n=15)
     

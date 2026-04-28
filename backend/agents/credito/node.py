@@ -42,7 +42,7 @@ def agente_credito_node(state: BancoAgilState):
         else:
             contexto_agente += "- STATUS: O cliente pode solicitar análise financeira se o aumento for negado.\n"
 
-    # Se for uma transferência, injetamos a instrução de início
+    # Injeção de instruções específicas de fluxo
     if transferencia:
         if state.get("analise_realizada"):
              contexto_agente += "\nSua tarefa agora é: Retome a conversa após a análise financeira concluída. NÃO apresente o menu inicial de forma genérica. Reconheça que a análise foi feita e pergunte como prosseguir com as opções de crédito (consultar limite ou solicitar novo aumento)."
@@ -55,6 +55,10 @@ def agente_credito_node(state: BancoAgilState):
             SystemMessage(content=contexto_agente),
             HumanMessage(content=trigger_msg, name="system")
         ]
+    else:
+        # Em turnos subsequentes, apenas reforçamos o contexto do cliente
+        messages = messages + [SystemMessage(content=contexto_agente)]
+
     # Otimiza o histórico enviado para a LLM
     trimmed_messages = trim_messages(messages, last_n=15)
     
